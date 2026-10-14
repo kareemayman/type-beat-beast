@@ -1,0 +1,8 @@
+node_modules/
+out/
+dist/
+*.log
+
+# Google sign-in keys and tokens never go into git
+client_secret*.json
+token*.json
