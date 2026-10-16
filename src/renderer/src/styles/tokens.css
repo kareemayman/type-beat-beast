@@ -1,0 +1,157 @@
+/* Design tokens from the Claude Design file (TBB-Cartoon): colors, shapes and every animation. */
+:root {
+  --font-ui: Nunito, system-ui, sans-serif;
+  --font-display: Fredoka, Nunito, sans-serif;
+  --font-hand: Caveat, cursive;
+
+  --orange: #ff6500;
+  --orange-hover: #ff7a26;
+  --orange-pressed: #e05900;
+  --yellow: #facc15;
+  --sky: #38bdf8;
+  --green: #22c55e;
+  --rose: #ff4d6d;
+  --violet: #a78bfa;
+  --navy: #0b192c;
+
+  --chrome: #000000;
+  --bg: #0b192c;
+  --grid: rgba(157, 176, 199, 0.07);
+  --grid-bar: rgba(157, 176, 199, 0.15);
+  --card: #183250;
+  --card2: #11253e;
+  --ink: #000000;
+  --text: #f4f7fb;
+  --text2: #9db0c7;
+  --track: #2a5280;
+  --path: #5b7290;
+  --t-run: #ff6500;
+  --t-needs: #38bdf8;
+  --t-fail: #ff4d6d;
+  --t-done: #22c55e;
+  --anno: #facc15;
+
+  /* Hand-drawn, slightly uneven corners and tilts */
+  --r-card: 18px 24px 16px 26px / 24px 16px 26px 18px;
+  --r-small: 12px 16px 11px 15px / 15px 11px 16px 12px;
+  --tilt-1: -2.5deg;
+  --tilt-2: 2.5deg;
+  --tilt-3: 1.5deg;
+  --tilt-4: -1.5deg;
+  --tilt-5: 1.5deg;
+
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --chrome: #e9eef5;
+  --bg: #f4f6fa;
+  --grid: rgba(30, 62, 98, 0.07);
+  --grid-bar: rgba(30, 62, 98, 0.14);
+  --card: #ffffff;
+  --card2: #eef2f7;
+  --ink: #0b192c;
+  --text: #0b192c;
+  --text2: #1e3e62;
+  --track: #d3dce7;
+  --path: #b5c3d4;
+  --t-run: #c2410c;
+  --t-needs: #0369a1;
+  --t-fail: #e11d48;
+  --t-done: #15803d;
+  --anno: #c2410c;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 600 14px/1.4 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(255, 101, 0, 0.35);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--track);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+/* Nothing animates while the window is hidden or minimized. */
+:root[data-paused='1'] * {
+  animation-play-state: paused !important;
+}
+
+/* FL-style grid: a bar line every 96 px, a step line every 24 px */
+.grid-bg {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid-bar) 2px, transparent 2px),
+    linear-gradient(90deg, var(--grid-bar) 2px, transparent 2px),
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+  background-position: -1px -1px;
+}
+
+/* Animations are referenced by name from inline styles, because many durations depend on the BPM. */
+@keyframes tbcPulse { 0% { transform: scale(1.1) } 55%, 100% { transform: scale(1) } }
+@keyframes tbcHop { 0%, 100% { transform: translateY(0) scale(1, 1) } 30% { transform: translateY(-12px) scale(0.96, 1.05) } 62% { transform: translateY(0) scale(1.08, 0.92) } 80% { transform: translateY(0) scale(0.98, 1.02) } }
+@keyframes tbcPop { 0% { transform: scale(0.5); opacity: 0 } 60% { transform: scale(1.18); opacity: 1 } 100% { transform: scale(1); opacity: 1 } }
+@keyframes tbcBreathe { 0%, 100% { opacity: 0.55 } 50% { opacity: 1 } }
+@keyframes tbcSpin { to { transform: rotate(360deg) } }
+@keyframes tbcShake { 0%, 100% { transform: translateX(0) rotate(-2deg) } 20% { transform: translateX(-7px) rotate(-4deg) } 40% { transform: translateX(6px) rotate(1deg) } 60% { transform: translateX(-4px) rotate(-3deg) } 80% { transform: translateX(2px) rotate(-2deg) } }
+@keyframes tbcIn { from { opacity: 0; transform: translateY(8px) scale(0.97) } to { opacity: 1; transform: none } }
+@keyframes tbcFade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes tbcFlash { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }
+@keyframes tbcBounce { 0%, 100% { transform: translateY(0) scale(1) } 25% { transform: translateY(-7px) scale(1.05, 0.95) } 55% { transform: translateY(0) scale(1.1, 0.88) } 75% { transform: translateY(0) scale(0.97, 1.03) } }
+@keyframes tbcRainbow { to { transform: rotate(360deg) } }
+@keyframes tbcSway { 0%, 100% { transform: rotate(-10deg) } 50% { transform: rotate(8deg) } }
+@keyframes tbcZ { 0% { opacity: 0; transform: translate(0, 0) scale(0.7) } 30% { opacity: 1 } 100% { opacity: 0; transform: translate(8px, -14px) scale(1.1) } }
+
+/* Mascots */
+@keyframes tbmHop { 0%, 100% { transform: translateY(0) scale(1, 1) } 30% { transform: translateY(-14px) scale(0.96, 1.05) } 62% { transform: translateY(0) scale(1.07, 0.93) } 80% { transform: translateY(0) scale(0.98, 1.02) } }
+@keyframes tbmBob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+@keyframes tbmWobble { 0%, 100% { transform: rotate(-6deg) } 50% { transform: rotate(4deg) } }
+@keyframes tbmEye { 0%, 92%, 100% { transform: scaleY(1) } 95% { transform: scaleY(0.1) } }
+@keyframes tbmPump { 0% { transform: scale(1.16) } 50%, 100% { transform: scale(1) } }
+@keyframes tbmSwing { 0%, 100% { transform: rotate(-22deg) } 50% { transform: rotate(22deg) } }
+@keyframes tbmKey { 0%, 100% { opacity: 0 } 20%, 45% { opacity: 1 } }
+@keyframes tbmSpin { to { transform: rotate(360deg) } }
+@keyframes tbmSkip { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(14deg) } }
+@keyframes tbmDrip { 0% { transform: translateY(-4px) rotate(45deg); opacity: 0 } 25% { opacity: 1 } 100% { transform: translateY(14px) rotate(45deg); opacity: 0 } }
+@keyframes tbmSpark { 0% { transform: scale(0) rotate(45deg); opacity: 0 } 50% { transform: scale(1.2) rotate(45deg); opacity: 1 } 100% { transform: scale(0.9) rotate(45deg); opacity: 1 } }
