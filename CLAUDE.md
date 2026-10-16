@@ -23,7 +23,10 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 - `npm run dev` starts the app with hot reload · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types · `npm test` runs the Vitest tests (`*.test.ts` next to the code).
 - Vitest stays on 3.2.x: adding Vitest 4.1 crashes npm 11.2 (`Cannot read properties of null (reading 'edgesOut')`) while it resolves Vitest's optional devtools peers.
-- `src/main/` main process (Node: files, FL Studio, WinRAR, windows) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` types both sides use, like `Api` (the contract for `window.api`) · `src/renderer/` the React app.
+- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`) · `src/renderer/` the React app.
+- Renderer: `lib/` state and logic (settings in localStorage, toasts, the beat model, the pipeline, small hooks) · `components/` shared UI (Card, TitleBar, Rail, Mascot, Celebration, controls) · `screens/` one folder or file per screen · `styles/tokens.css` the design tokens and every animation. Components use CSS Modules (`*.module.css`); animations whose speed depends on the BPM are set as inline styles.
+- IPC routes so far: `project:read` (invoke) reads an .flp; `window:theme` (send) recolors the caption buttons. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
+- The pipeline is a demo for now (`DEMO` in `src/renderer/src/lib/pipeline.ts`): every step is simulated with made-up timings, and the UI says so. Phases 2–4 replace the steps with real work.
 - Built with electron-vite 5 (`electron.vite.config.ts`); TypeScript configs: `tsconfig.node.json` (main, preload, shared) and `tsconfig.web.json` (renderer, shared).
 - Package versions are pinned exactly, picked at least two weeks after release. electron-vite 5 supports Vite up to 7, so Vite and `@vitejs/plugin-react` stay on 7.x and 5.x.
 - Windows stay locked down: `contextIsolation`, `sandbox`, no `nodeIntegration`, a Content-Security-Policy in `index.html`, external links only open in the browser if they're https. The preload must stay CommonJS (no `"type": "module"` in package.json), because sandboxed preloads can't load ES modules.
@@ -88,17 +91,13 @@ No tag name is hard-coded, so it works if the user changes their tag or someone 
 - The pick appears in the beat details before anything renders. The user can choose another track or "No tag".
 - Why not trust "last track" alone: in the user's 99 projects from 2026 the tag was the last track in 96. In `pro - 155 Fmin` it was track 6 of 12, and two welcomeCarson collabs have no tag track; there, muting the last track would have removed a real sound (in `somethings never change` it's the only track).
 
-## Design (decided 2026-10-13)
+## Design (Claude Design v2, built from 2026-10-16)
 
-- Vibe: Studio / DAW, FL-inspired: LED status lights, LCD-style readouts for BPM, key and timers, segmented meters, the pipeline shown as a rack of steps. Dark (default) and light themes. Custom title bar; Windows keeps its own minimize/maximize/close buttons (`titleBarOverlay`, right ~140 px reserved, bar 40 px tall).
-- Personality: playful, not plain. Microcopy with attitude, small easter eggs (logo ×5 bounces to the BPM, Konami code "producer mode", BPM 808 joke, after-3-AM moon, publish celebration), animations with rhythm: the running step's LED pulses at the beat's BPM (`60 / BPM` seconds). Performance rules: animate only `transform`/`opacity` (CSS/SVG), nothing runs while the window is hidden, honor reduced motion, and errors plus the BeatStars review stay calm and readable.
-- Brand colors (the user's palette): orange `#FF6500` (accent), steel `#1E3E62`, navy `#0B192C`, black `#000000`.
-- Dark: chrome `#000000`, background `#0B192C`, surface `#11253E`, raised/input `#183250`, border `#1E3E62`, border-strong `#2A5280`; text `#E8EEF6`, secondary `#9DB0C7`, muted `#7389A6`.
-- Light: chrome `#E9EEF5`, background `#F4F6FA`, surface `#FFFFFF`, raised/input `#EEF2F7`, border `#D3DCE7`, border-strong `#B5C3D4`; text `#0B192C`, secondary `#1E3E62`, muted `#5B7290`.
-- Accent: fill `#FF6500`, hover `#FF7A26`, pressed `#E05900`, selected tint = accent at 14%. Text on orange is navy `#0B192C` (white on orange is only 2.9:1). Orange text on light backgrounds uses `#C2410C`.
-- Status (dark / light): queued `#5B7290`; running = accent orange, pulsing; needs you `#38BDF8` / `#0369A1`; done `#22C55E` / `#15803D`; failed `#FF4D6D` / `#E11D48`; warning `#FACC15`. Always pair a status color with an icon or label.
-- Type: Inter (UI) and JetBrains Mono (numbers, BPM/key, timers, logs), bundled with the app. Sizes 11/12/13/15/18/24. Spacing on a 4 px grid. Radius 4 inputs/chips, 6 buttons, 8 panels, 999 pills/LEDs. Depth from borders and 1 px highlights, not big shadows. Icons: Lucide.
-- Screens are being mocked up by the user in Claude Design; build the UI from those mockups.
+- Source: the user's Claude Design project "Music production app screens" (`72a6051a-0502-47e7-af28-3f8a67db3736`), readable with the DesignSync tool (`get_file`). `TBB-Cartoon.dc.html` holds every app screen and its logic, `TBB-Mascot.dc.html` the mascots, `TBB-CartoonNotes.dc.html` the notes window; `Type Beat Beast v2.dc.html` is the overview page.
+- Look: "cartoon studio". Sticker cards with thick ink outlines, hard offset shadows, uneven corners and slight tilts on an FL-style grid; the 7 steps drawn as a game level; four mascots (Keys, Subby, Tick, Spinz), one picked at random per run, hopping at the beat's BPM. Dark (default) and light themes. Custom title bar; Windows keeps its own caption buttons (`titleBarOverlay`, 37 px tall over the 40 px bar, right 140 px reserved).
+- Tokens live in `src/renderer/src/styles/tokens.css`, copied from the design's CSS variables. Brand colors from the user's palette: orange `#FF6500`, navy `#0B192C`, steel `#1E3E62`, black. Text on orange is navy, never white (white on orange is only 2.9:1).
+- Fonts: Fredoka (headings, numbers), Nunito (UI), Caveat (handwritten notes), bundled from `@fontsource`. Icons: `lucide-react` 1.x, which has no brand logos (no YouTube icon).
+- Personality: playful microcopy and easter eggs (logo ×5 bounces to the BPM, Konami code "producer mode", BPM 808 joke, after-3-AM moon, publish celebration with confetti). Performance rules: animate only `transform`/`opacity`, pause everything while the window is hidden, honor reduced motion (OS setting or Settings → Motion), and keep errors plus the BeatStars review calm and readable.
 
 ## Beat folder
 
@@ -122,19 +121,20 @@ Everything risky works on this PC: FL Studio renders from the command line (stem
 
 Build the parts without screens first (while the user makes the design), then the screens from the mockups.
 
-- [x] Electron + TypeScript + React project (placeholder screen with a BPM-synced LED and the Electron/Chrome/Node versions)
-- [ ] Bridge between React and Node: preload script + IPC, with the security defaults on
-- [ ] Custom title bar and dark/light themes from the design tokens
-- [ ] Window: pick `.flp` + cover image; shows beat name, BPM, key and collaborators (editable)
+- [x] Electron + TypeScript + React project
+- [x] Bridge between React and Node: preload + IPC (`project:read`, `window:theme`), security defaults on
+- [x] Custom title bar and dark/light themes (toggle in the title bar; Settings → Appearance comes with the Settings screen)
+- [x] New beat screen from the design: drop the .flp and cover, name/BPM/key, options, More (collabs, tag track, timers), the game-level pipeline with mascots, step log, Run, the BeatStars review and the publish celebration (pipeline is a demo)
 - [x] File-name parser for both naming patterns, with tests (`src/shared/parseBeatName.ts`)
-- [ ] Notes window with the naming rules
-- [ ] Settings and per-beat options (see Options), plus FL Studio path and daily publish time
+- [ ] Schedule and History screens from the design
+- [ ] Settings screen from the design (paths, quality, defaults, YouTube, BeatStars, tags, appearance)
+- [ ] Notes window with the naming rules, as its own window
 
 ## Phase 2 — Audio files
 
 - [ ] Beat folder: create it in the output location; at the very end, move the `.flp` and cover image into it (check the moved `.flp` still finds its samples)
-- [ ] Project reader: list mixer tracks; write temporary copies with the tag track muted or on
-- [ ] Tag picker in the beat details: remembered tag names first, else the last track as a guess, plus "No tag"
+- [ ] Temporary project copies with the tag track muted or on (reading the mixer tracks is done: `src/main/project.ts`, tested on a synthetic .flp and on flowers)
+- [x] Tag picker in the beat details (More card): remembered names first, else the last track as a guess, plus "No tag"; running remembers the pick
 - [ ] Render runner: make sure FL is closed, set the registry values, run the command line, wait for FL to exit, restore the user's values
 - [ ] Untagged WAV + stems in one split render from the muted copy (a normal WAV render when stems are off)
 - [ ] Tagged MP3 render from the unmuted copy
