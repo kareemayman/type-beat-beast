@@ -1,0 +1,20 @@
+.card {
+  position: relative;
+  background: var(--card);
+  border: 2.5px solid var(--ink);
+  border-radius: var(--r-card);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.sticker {
+  position: absolute;
+  left: 18px;
+  top: -15px;
+  padding: 2px 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 6px 9px 5px 8px;
+  box-shadow: 2px 2px 0 var(--ink);
+  color: var(--navy);
+  font: 600 16px var(--font-display);
+  white-space: nowrap;
+}
