@@ -1,0 +1,59 @@
+.layout {
+  display: grid;
+  grid-template-columns: 372px minmax(0, 1fr);
+  gap: 20px;
+  height: 100%;
+  padding: 16px 20px 20px 16px;
+}
+
+/* The negative margin plus padding keeps the cards' shadows and stickers from being clipped by the scroll area. */
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-height: 0;
+  margin: -14px -8px -8px -2px;
+  padding: 14px 8px 8px 2px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.left > * {
+  flex: none;
+}
+
+.right {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.bottom {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 248px;
+  gap: 20px;
+  min-height: 0;
+}
+
+.moreToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  border: 2.5px dashed var(--text2);
+  border-radius: var(--r-small);
+  background: transparent;
+  color: var(--text2);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.moreToggle:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
