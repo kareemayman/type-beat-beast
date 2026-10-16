@@ -1,0 +1,47 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 26px 18px 14px;
+}
+
+.lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 2px dashed var(--track);
+}
+
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  transform: translateY(1px);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.time {
+  flex: none;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
