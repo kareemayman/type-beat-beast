@@ -1,0 +1,183 @@
+.bar {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  background: var(--chrome);
+  border-bottom: 2.5px solid var(--ink);
+  user-select: none;
+  /* Dragging the bar moves the window; interactive parts opt out with no-drag. */
+  -webkit-app-region: drag;
+}
+
+.logoCell {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 64px;
+  height: 40px;
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.logoMark {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  width: 26px;
+  height: 26px;
+  padding: 4px 3px;
+  border: 2px solid #000;
+  border-radius: 8px 10px 7px 9px;
+  background: var(--orange);
+}
+
+.logoMark span {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--navy);
+}
+
+.title {
+  font: 600 17px var(--font-display);
+  white-space: nowrap;
+}
+
+.pill,
+.producer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  margin-left: 14px;
+  padding: 0 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.pill {
+  min-width: 0;
+  max-width: 460px;
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pillName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dim {
+  color: var(--text2);
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.producer {
+  background: var(--orange);
+  color: var(--navy);
+  font: 600 14px var(--font-display);
+  animation: tbcIn 200ms both;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--card);
+  color: var(--text);
+}
+
+.moonWrap {
+  position: relative;
+}
+
+.moon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--yellow);
+  cursor: default;
+}
+
+.moonIcon {
+  display: inline-flex;
+  transform-origin: 50% 60%;
+}
+
+.z {
+  position: absolute;
+  right: 2px;
+  top: 0;
+  color: var(--text2);
+  font: 700 15px var(--font-hand);
+}
+
+.tooltip {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  z-index: 40;
+  padding: 8px 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px 14px 10px 14px;
+  background: var(--yellow);
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  animation: tbcIn 140ms both;
+}
+
+/* Windows draws minimize / maximize / close here (titleBarOverlay in src/main/index.ts). */
+.captionSpace {
+  flex: none;
+  width: 140px;
+  height: 40px;
+}
