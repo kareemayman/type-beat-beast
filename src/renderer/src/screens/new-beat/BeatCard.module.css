@@ -1,0 +1,118 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 16px 18px;
+}
+
+.nameField {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.caption {
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.name {
+  width: 100%;
+  height: 42px;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 3px dashed var(--track);
+  background: transparent;
+  color: var(--text);
+  font: 600 28px var(--font-display);
+  outline-offset: 2px;
+}
+
+.name::placeholder {
+  color: var(--text2);
+  opacity: 0.6;
+}
+
+.stickers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.sticker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 76px;
+  padding: 8px 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--r-small);
+  box-shadow: 4px 4px 0 var(--ink);
+  color: var(--navy);
+}
+
+.bpm {
+  background: var(--orange);
+  transform: rotate(var(--tilt-4));
+}
+
+.key {
+  background: var(--sky);
+  transform: rotate(var(--tilt-5));
+}
+
+.stickerCaption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.beatDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--navy);
+}
+
+.stickerInput {
+  width: 100%;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--navy);
+  font: 700 36px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.stickerInput::placeholder {
+  color: rgba(11, 25, 44, 0.45);
+}
+
+.stickerInput:focus-visible {
+  outline-color: var(--navy);
+}
+
+.keyInput {
+  font-size: 32px;
+}
+
+.joke {
+  position: absolute;
+  left: -6px;
+  top: calc(100% + 10px);
+  z-index: 8;
+  padding: 8px 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px 14px 10px 14px;
+  background: var(--yellow);
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}

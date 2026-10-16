@@ -1,0 +1,142 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px 16px 16px;
+  animation: tbcIn 180ms both;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.caption {
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding-left: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--sky);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.chip button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--navy);
+  cursor: pointer;
+}
+
+.dim {
+  flex: none;
+  color: var(--text2);
+  font-size: 13px;
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--card2);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mic {
+  flex: none;
+  color: var(--orange);
+}
+
+.select {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.select:disabled {
+  color: var(--text2);
+  cursor: default;
+}
+
+.select option {
+  background: var(--card2);
+  color: var(--text);
+}
+
+.badge {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 6px;
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.timers {
+  display: flex;
+  gap: 10px;
+}
+
+.timer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 6px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--card2);
+}
+
+.timer b {
+  font: 600 20px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 36px;
+  padding: 0 8px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--card2);
+}
+
+.wave span {
+  flex: 1;
+  border-radius: 2px;
+}

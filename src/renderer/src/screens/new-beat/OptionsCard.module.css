@@ -1,0 +1,35 @@
+.card {
+  padding: 24px 16px 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+}
+
+.label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.quality {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--violet);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.quality:hover {
+  transform: translateY(-1px);
+}
