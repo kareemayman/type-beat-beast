@@ -3,11 +3,6 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { Api } from '../shared/api'
 
 const api: Api = {
-  versions: {
-    electron: process.versions.electron,
-    chrome: process.versions.chrome,
-    node: process.versions.node,
-  },
   pathForFile: (file) => webUtils.getPathForFile(file),
   // invoke = request and response over IPC, like fetch() to an Express route. The main process answers in ipcMain.handle.
   readProject: (path) => ipcRenderer.invoke('project:read', path),
