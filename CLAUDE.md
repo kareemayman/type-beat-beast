@@ -21,7 +21,8 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 ## Project structure and commands
 
-- `npm run dev` starts the app with hot reload · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types.
+- `npm run dev` starts the app with hot reload · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types · `npm test` runs the Vitest tests (`*.test.ts` next to the code).
+- Vitest stays on 3.2.x: adding Vitest 4.1 crashes npm 11.2 (`Cannot read properties of null (reading 'edgesOut')`) while it resolves Vitest's optional devtools peers.
 - `src/main/` main process (Node: files, FL Studio, WinRAR, windows) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` types both sides use, like `Api` (the contract for `window.api`) · `src/renderer/` the React app.
 - Built with electron-vite 5 (`electron.vite.config.ts`); TypeScript configs: `tsconfig.node.json` (main, preload, shared) and `tsconfig.web.json` (renderer, shared).
 - Package versions are pinned exactly, picked at least two weeks after release. electron-vite 5 supports Vite up to 7, so Vite and `@vitejs/plugin-react` stay on 7.x and 5.x.
@@ -62,9 +63,10 @@ The `.flp` file name carries the beat info, in one of two patterns:
 
 - The main producer is the user (kriko) and always comes first. Every name after it, separated by `x`, is a collaborator; there can be several (`kriko x A x B - beat name - bpm key`).
 - Minor keys: lowercase `m` or `min` (`D#m`, `Fmin`, `Em`). Major keys: capital `M` or `maj` (`CM`, `Cmaj`, `CMAJ`, `Bmaj`). Check the three-letter forms first, in any case, so `CMIN` isn't read as major.
-- Read BPM and key from the end of the name: real files sometimes skip the dash before the BPM (`kriko x welcomeCarson - mushroom 134 Gmin`).
+- Read BPM and key from the end of the name. Real files sometimes skip the dash before the BPM (`kriko x welcomeCarson - mushroom 134 Gmin`), and 5 of the 99 put the key first (`my city - Fmin 137`). `src/shared/parseBeatName.ts` handles both and reads all 99 of the user's 2026 names.
 - If a name still doesn't fit, the app asks instead of guessing.
 - On BeatStars, each collaborator is added in the collabs section: type their name and pick the first result in the dropdown.
+- Collaborator spellings vary between files: `wecomeCarson` (typo of `welcomeCarson`), `prodcozee` / `whereiscozee`, `prodbysky` / `sky`. Searching BeatStars with these as written can pick the wrong account, so Phase 3 needs a remembered list mapping file-name spellings to BeatStars usernames.
 
 The app has a small notes window showing these rules, which the user can edit.
 
@@ -124,7 +126,7 @@ Build the parts without screens first (while the user makes the design), then th
 - [ ] Bridge between React and Node: preload script + IPC, with the security defaults on
 - [ ] Custom title bar and dark/light themes from the design tokens
 - [ ] Window: pick `.flp` + cover image; shows beat name, BPM, key and collaborators (editable)
-- [ ] File-name parser for both naming patterns
+- [x] File-name parser for both naming patterns, with tests (`src/shared/parseBeatName.ts`)
 - [ ] Notes window with the naming rules
 - [ ] Settings and per-beat options (see Options), plus FL Studio path and daily publish time
 
@@ -144,6 +146,7 @@ Build the parts without screens first (while the user makes the design), then th
 - [ ] Record one upload done by hand with Playwright's recorder, then turn it into the upload script
 - [ ] Upload the files (following the stems and tagged-file options); fill in title, BPM, key and artwork; turn on the free tagged MP3 download (non-commercial)
 - [ ] Collaborators: for each one, type the name in the collabs section and pick the first dropdown result; flag it in the review if the picked account's name doesn't match
+- [ ] Collaborator name list: remember which BeatStars username each file-name spelling means (see Naming system)
 - [ ] Stop for the user's confirmation, then publish; save the beat's BeatStars link
 
 ## Phase 4 — YouTube
