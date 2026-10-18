@@ -26,7 +26,6 @@
   background: transparent;
   color: var(--text);
   font: 600 28px var(--font-display);
-  outline-offset: 2px;
 }
 
 .name::placeholder {
@@ -91,10 +90,6 @@
 
 .stickerInput::placeholder {
   color: rgba(11, 25, 44, 0.45);
-}
-
-.stickerInput:focus-visible {
-  outline-color: var(--navy);
 }
 
 .keyInput {

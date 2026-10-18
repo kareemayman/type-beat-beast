@@ -99,6 +99,14 @@ textarea {
   outline-offset: 3px;
 }
 
+/* Text boxes and dropdowns skip the ring: the caret or the open list already shows where you are. Buttons keep
+   it, and Chromium only draws it on them when you move with the keyboard. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
 ::selection {
   background: rgba(255, 101, 0, 0.35);
 }
