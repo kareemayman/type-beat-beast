@@ -3,10 +3,13 @@ import Mascot from '../components/Mascot'
 import type { Screen } from '../components/Rail'
 import styles from './ComingSoon.module.css'
 
-const TITLES: Record<Exclude<Screen, 'new'>, string> = { schedule: 'Schedule', history: 'History', settings: 'Settings' }
+// The screens that aren't built yet.
+type LaterScreen = Exclude<Screen, 'new' | 'schedule'>
 
-// Stand-in for the screens built in the next step.
-export default function ComingSoon({ screen, reduceMotion }: { screen: Exclude<Screen, 'new'>; reduceMotion: boolean }) {
+const TITLES: Record<LaterScreen, string> = { history: 'History', settings: 'Settings' }
+
+// Stand-in for the screens built in the next steps.
+export default function ComingSoon({ screen, reduceMotion }: { screen: LaterScreen; reduceMotion: boolean }) {
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>{TITLES[screen]}</h1>

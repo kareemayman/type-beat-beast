@@ -23,10 +23,10 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 - `npm run dev` starts the app with hot reload · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types · `npm test` runs the Vitest tests (`*.test.ts` next to the code).
 - Vitest stays on 3.2.x: adding Vitest 4.1 crashes npm 11.2 (`Cannot read properties of null (reading 'edgesOut')`) while it resolves Vitest's optional devtools peers.
-- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`) · `src/renderer/` the React app.
+- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots) · `src/renderer/` the React app.
 - Renderer: `lib/` state and logic (settings in localStorage, toasts, the beat model, the pipeline, small hooks) · `components/` shared UI (Card, TitleBar, Rail, Mascot, Celebration, controls) · `screens/` one folder or file per screen · `styles/tokens.css` the design tokens and every animation. Components use CSS Modules (`*.module.css`); animations whose speed depends on the BPM are set as inline styles.
 - IPC routes so far: `project:read` (invoke) reads an .flp; `window:theme` (send) recolors the caption buttons. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
-- The pipeline is a demo for now (`DEMO` in `src/renderer/src/lib/pipeline.ts`): every step is simulated with made-up timings, and the UI says so. Phases 2–4 replace the steps with real work.
+- The pipeline and the Schedule screen are demos for now (`DEMO` in `src/renderer/src/lib/pipeline.ts`): every step is simulated with made-up timings, the schedule shows made-up days, and the UI says so. Phases 2–4 replace them with real work.
 - Built with electron-vite 5 (`electron.vite.config.ts`); TypeScript configs: `tsconfig.node.json` (main, preload, shared) and `tsconfig.web.json` (renderer, shared).
 - Package versions are pinned exactly, picked at least two weeks after release. electron-vite 5 supports Vite up to 7, so Vite and `@vitejs/plugin-react` stay on 7.x and 5.x.
 - Windows stay locked down: `contextIsolation`, `sandbox`, no `nodeIntegration`, a Content-Security-Policy in `index.html`, external links only open in the browser if they're https. The preload must stay CommonJS (no `"type": "module"` in package.json), because sandboxed preloads can't load ES modules.
@@ -126,7 +126,8 @@ Build the parts without screens first (while the user makes the design), then th
 - [x] Custom title bar and dark/light themes (toggle in the title bar; Settings → Appearance comes with the Settings screen)
 - [x] New beat screen from the design: drop the .flp and cover, name/BPM/key, options, More (collabs, tag track, timers), the game-level pipeline with mascots, step log, Run, the BeatStars review and the publish celebration (pipeline is a demo)
 - [x] File-name parser for both naming patterns, with tests (`src/shared/parseBeatName.ts`)
-- [ ] Schedule and History screens from the design
+- [x] Schedule screen from the design: two weeks of daily slots starting yesterday, the next free slot, failed uploads, empty state (demo days until Phase 4)
+- [ ] History screen from the design
 - [ ] Settings screen from the design (paths, quality, defaults, YouTube, BeatStars, tags, appearance)
 - [ ] Notes window with the naming rules, as its own window
 
