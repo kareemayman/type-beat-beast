@@ -1,5 +1,6 @@
 import { Check, ExternalLink, FileArchive, FileAudio, Rocket, type LucideIcon } from 'lucide-react'
 import Card from '../../components/Card'
+import ConfirmButton from '../../components/ConfirmButton'
 import { longKey, type Beat } from '../../lib/beat'
 import { DEMO } from '../../lib/pipeline'
 import styles from './Review.module.css'
@@ -9,10 +10,11 @@ interface ReviewProps {
   freeDownload: boolean
   onPublish(button: DOMRect): void
   onOpenBrowser(): void
+  onStop(): void
 }
 
 // "Your turn": BeatStars is filled in and waits for the user's OK before anything goes public.
-export default function Review({ beat, freeDownload, onPublish, onOpenBrowser }: ReviewProps) {
+export default function Review({ beat, freeDownload, onPublish, onOpenBrowser, onStop }: ReviewProps) {
   const rows: [string, string][] = [
     ['Title', beat.name],
     ['BPM', beat.bpm],
@@ -70,6 +72,9 @@ export default function Review({ beat, freeDownload, onPublish, onOpenBrowser }:
           <ExternalLink size={16} strokeWidth={2.5} />
           Open in browser
         </button>
+        <ConfirmButton className={styles.stop} onConfirm={onStop} confirmLabel="Click again to stop">
+          Stop here, don't publish
+        </ConfirmButton>
       </div>
     </Card>
   )

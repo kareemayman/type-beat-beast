@@ -20,6 +20,8 @@ interface NewBeatProps {
   setBeat: Dispatch<SetStateAction<Beat>>
   pipeline: PipelineState
   onRun(): void
+  onNewBeat(): void
+  onStop(): void
   onPublish(button: DOMRect): void
   mascot: MascotKind
   producerMode: boolean
@@ -39,7 +41,7 @@ function logContext(beat: Beat, settings: Settings): LogContext {
   }
 }
 
-export default function NewBeat({ beat, setBeat, pipeline, onRun, onPublish, mascot, producerMode, reduceMotion, onGoSettings }: NewBeatProps) {
+export default function NewBeat({ beat, setBeat, pipeline, onRun, onNewBeat, onStop, onPublish, mascot, producerMode, reduceMotion, onGoSettings }: NewBeatProps) {
   const { settings } = useSettings()
   const toast = useToast()
   const [moreOpen, setMoreOpen] = useState(false)
@@ -53,7 +55,7 @@ export default function NewBeat({ beat, setBeat, pipeline, onRun, onPublish, mas
   const patch = (change: Partial<Beat>) => setBeat((b) => ({ ...b, ...change }))
 
   async function openProject(file: File) {
-    if (phase === 'running' || phase === 'needs') return toast('info', 'Let this beat finish first.')
+    if (phase === 'running' || phase === 'needs') return toast('info', 'This beat is still going. Stop it first, then drop the next one.')
     // The page only knows the file's name. The preload gets its full path from Electron, then IPC asks the
     // main process to read the file, because only the main process can touch the disk.
     const result = await window.api.readProject(window.api.pathForFile(file))
@@ -114,11 +116,12 @@ export default function NewBeat({ beat, setBeat, pipeline, onRun, onPublish, mas
             freeDownload={settings.freeDownload}
             onPublish={onPublish}
             onOpenBrowser={() => toast('info', DEMO ? 'Demo: the browser part comes with the BeatStars step.' : 'BeatStars draft opened in your browser.')}
+            onStop={onStop}
           />
         ) : (
           <div className={styles.bottom}>
             <StepLog steps={steps} index={selectedStep} ctx={ctx} stems={beat.stems} />
-            <RunPanel steps={steps} phase={phase} onRun={onRun} onRetry={pipeline.retry} reduceMotion={reduceMotion} />
+            <RunPanel steps={steps} phase={phase} onRun={onRun} onNewBeat={onNewBeat} onRetry={pipeline.retry} onStop={onStop} reduceMotion={reduceMotion} />
           </div>
         )}
       </div>

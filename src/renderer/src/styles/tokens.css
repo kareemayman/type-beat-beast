@@ -40,6 +40,9 @@
   --tilt-4: -1.5deg;
   --tilt-5: 1.5deg;
 
+  /* Space between a screen's content and the window edges */
+  --page-margin: 28px;
+
   color-scheme: dark;
 }
 

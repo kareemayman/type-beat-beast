@@ -3,7 +3,7 @@
   grid-template-columns: 372px minmax(0, 1fr);
   gap: 20px;
   height: 100%;
-  padding: 16px 20px 20px 16px;
+  padding: var(--page-margin);
 }
 
 /* The negative margin plus padding keeps the cards' shadows and stickers from being clipped by the scroll area. */

@@ -66,6 +66,8 @@ export default function App() {
 
   function run() {
     if (pipeline.phase === 'running' || pipeline.phase === 'needs') return
+    // A finished beat is already up, so running it again would upload it twice.
+    if (pipeline.phase === 'done') return toast('info', 'This one is cooked. Press Cook another for the next beat.')
     if (!beat.fileName) return toast('info', 'Drop an FL Studio project first.')
     // Running with a tag track confirms it, so its name is remembered for the next beat.
     const tag = tagTrack(beat)
@@ -77,6 +79,18 @@ export default function App() {
     setScreen('new')
     pipeline.run()
     if (DEMO) toast('info', 'Demo run: nothing gets rendered or uploaded yet.')
+  }
+
+  // "Cook another": clear the finished beat and its cover, ready for the next project.
+  function startNewBeat() {
+    setBeat(emptyBeat(settings))
+    pipeline.reset()
+  }
+
+  // Stop a run partway. The beat stays loaded, so it can run again or be swapped for another project.
+  function stop() {
+    pipeline.reset()
+    toast('info', 'Stopped. Run it again or drop another beat.')
   }
 
   // Ctrl + Enter runs from anywhere. The ref always points at the latest run(), so the listener is added once.
@@ -124,6 +138,8 @@ export default function App() {
             setBeat={setBeat}
             pipeline={pipeline}
             onRun={run}
+            onNewBeat={startNewBeat}
+            onStop={stop}
             onPublish={publish}
             mascot={mascot}
             producerMode={producerMode}

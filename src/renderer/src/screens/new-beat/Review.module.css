@@ -150,3 +150,24 @@
   box-shadow: 1px 1px 0 var(--ink);
   transform: translate(2px, 2px);
 }
+
+/* A quiet way out: stop the run without publishing */
+.stop {
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.stop:hover {
+  color: var(--text);
+}
+
+.stop[data-armed='true'] {
+  background: var(--rose);
+  color: var(--navy);
+}

@@ -1,4 +1,5 @@
-import { Play, RotateCcw } from 'lucide-react'
+import { CircleStop, Play, RotateCcw } from 'lucide-react'
+import ConfirmButton from '../../components/ConfirmButton'
 import { overallProgress, type Phase, type StepState } from '../../lib/pipeline'
 import styles from './RunPanel.module.css'
 
@@ -6,14 +7,17 @@ interface RunPanelProps {
   steps: StepState[]
   phase: Phase
   onRun(): void
+  onNewBeat(): void
   onRetry(): void
+  onStop(): void
   reduceMotion: boolean
 }
 
-export default function RunPanel({ steps, phase, onRun, onRetry, reduceMotion }: RunPanelProps) {
+export default function RunPanel({ steps, phase, onRun, onNewBeat, onRetry, onStop, reduceMotion }: RunPanelProps) {
   const failed = phase === 'failed'
+  const done = phase === 'done'
   const fraction = overallProgress(steps)
-  const hint = phase === 'running' ? 'sit back, it’s cooking' : failed ? 'retry picks up where it stopped' : 'or Ctrl + Enter'
+  const hint = phase === 'running' ? 'sit back, it’s cooking' : failed ? 'retry picks up where it stopped' : done ? 'clears the page for the next one' : 'or Ctrl + Enter'
 
   return (
     <section className={styles.panel} aria-label="Run">
@@ -32,15 +36,31 @@ export default function RunPanel({ steps, phase, onRun, onRetry, reduceMotion }:
           </span>
         </div>
       ) : (
-        <button className={styles.run} onClick={onRun}>
+        <button className={styles.run} onClick={done ? onNewBeat : onRun}>
           <Play size={28} strokeWidth={3} />
-          {phase === 'done' ? 'Cook another' : failed ? 'Start over' : 'Run it!'}
+          {done ? 'Cook another' : failed ? 'Start over' : 'Run it!'}
         </button>
       )}
-      <button className={styles.retry} onClick={onRetry} disabled={!failed}>
-        <RotateCcw size={18} strokeWidth={2.5} />
-        Retry failed step
-      </button>
+      {phase === 'running' ? (
+        <ConfirmButton
+          className={styles.secondary}
+          onConfirm={onStop}
+          confirmLabel={
+            <>
+              <CircleStop size={18} strokeWidth={2.5} />
+              Click again to stop
+            </>
+          }
+        >
+          <CircleStop size={18} strokeWidth={2.5} />
+          Stop cooking
+        </ConfirmButton>
+      ) : (
+        <button className={styles.secondary} onClick={onRetry} disabled={!failed}>
+          <RotateCcw size={18} strokeWidth={2.5} />
+          Retry failed step
+        </button>
+      )}
       <span className={styles.hint}>{hint}</span>
     </section>
   )

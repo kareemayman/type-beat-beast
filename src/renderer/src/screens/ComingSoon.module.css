@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 26px;
   height: 100%;
-  padding: 22px 24px 28px;
+  padding: var(--page-margin);
   overflow: auto;
 }
 

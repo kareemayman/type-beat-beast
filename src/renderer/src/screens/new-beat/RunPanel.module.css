@@ -111,7 +111,8 @@
   transition: transform 250ms;
 }
 
-.retry {
+/* "Retry failed step", or "Stop cooking" while a run is going */
+.secondary {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -127,14 +128,19 @@
   cursor: pointer;
 }
 
-.retry:active:not(:disabled) {
+.secondary:active:not(:disabled) {
   box-shadow: 1px 1px 0 var(--ink);
   transform: translate(3px, 3px);
 }
 
-.retry:disabled {
+.secondary:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.secondary[data-armed='true'] {
+  background: var(--rose);
+  color: var(--navy);
 }
 
 .hint {
