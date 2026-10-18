@@ -9,7 +9,6 @@ export interface Settings {
   freeDownload: boolean
   wavBits: '16' | '24' | '32f'
   mp3Rate: '192' | '256' | '320'
-  sampleRate: '44.1' | '48'
   publishTime: string
   tagNames: string[] // mixer track names the user has confirmed as their tag
 }
@@ -23,7 +22,6 @@ const DEFAULTS: Settings = {
   freeDownload: true,
   wavBits: '24',
   mp3Rate: '320',
-  sampleRate: '44.1',
   publishTime: '18:00',
   tagNames: [],
 }

@@ -23,8 +23,16 @@
 .columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 34px 28px;
+  gap: 28px;
   align-items: start;
+}
+
+/* Cards stacked with room for the stickers on their top edges */
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  min-width: 0;
 }
 
 .card {

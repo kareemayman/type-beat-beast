@@ -37,7 +37,8 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 - `FL64.exe /R /Emp3,wav "<project>.flp"` renders without touching the FL window, then FL closes itself: about 35–50 s for a 2:17 beat, FL start-up included. Paths with spaces work when quoted. The `.flp` is left byte-for-byte unchanged.
 - Output goes next to the `.flp`, named after it: `<project>.mp3`, `<project>.wav`.
-- Quality comes from the Export window's saved settings in the registry, `HKCU\SOFTWARE\Image-Line\FL Studio 21\General\WAVRenderForm` (string values): `WFBox` 0 = 16-bit, 1 = 24-bit; `MP3BitrateSlider` 10 = 192 kbps, 13 = 320 kbps; `BatchBox` 1 = "Split mixer tracks". The user's own values are 16-bit, 192 kbps, split off.
+- Quality comes from the Export window's saved settings in the registry, `HKCU\SOFTWARE\Image-Line\FL Studio 21\General\WAVRenderForm` (string values): `WFBox` 0 = 16-bit, 1 = 24-bit; `MP3BitrateSlider` 10 = 192 kbps, 13 = 320 kbps; `BatchBox` 1 = "Split mixer tracks". The user's own values are 16-bit, 192 kbps, split off. Settings also offers 32-bit float and 256 kbps; their registry values are still to check in Phase 2.
+- The export settings have no sample rate: FL renders at the audio device's rate, `HKCU\SOFTWARE\Image-Line\FL Studio 21\Devices\Audio output` → `Sample rate` (44100 here). That's why Settings has no sample-rate option.
 - With `BatchBox` = 1, one render writes `<project>_Master.wav` (the full mix, same loudness as a normal render, so it works as the WAV), `<project>_Current.wav` (FL's special Current track, not a real stem) and `<project>_<mixer track name>.wav` for every mixer track that isn't muted, all full length. Track names can contain symbols and Unicode (`!`, `#`, `[ ]`, `@`, `ℹ`).
 - Copies of a project rendered fine from a temp folder (samples use full paths). Watch for projects whose samples sit next to the `.flp`.
 

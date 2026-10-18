@@ -52,6 +52,11 @@ export default function App() {
     }
   }, [])
 
+  // A page with no project on it follows the defaults in Settings. Once a project is loaded, its options are its own.
+  useEffect(() => {
+    setBeat((b) => (b.fileName || (b.stems === settings.stems && b.bsFile === settings.bsFile) ? b : { ...b, stems: settings.stems, bsFile: settings.bsFile }))
+  }, [settings.stems, settings.bsFile])
+
   // The cover preview is a blob: URL held in memory; free it once it's replaced.
   useEffect(() => {
     const url = beat.cover?.url
