@@ -4,9 +4,9 @@ import type { Screen } from '../components/Rail'
 import styles from './ComingSoon.module.css'
 
 // The screens that aren't built yet.
-type LaterScreen = Exclude<Screen, 'new' | 'schedule'>
+type LaterScreen = Exclude<Screen, 'new' | 'schedule' | 'settings'>
 
-const TITLES: Record<LaterScreen, string> = { history: 'History', settings: 'Settings' }
+const TITLES: Record<LaterScreen, string> = { history: 'History' }
 
 // Stand-in for the screens built in the next steps.
 export default function ComingSoon({ screen, reduceMotion }: { screen: LaterScreen; reduceMotion: boolean }) {

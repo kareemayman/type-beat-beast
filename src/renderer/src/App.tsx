@@ -11,6 +11,7 @@ import { useToast } from './lib/toasts'
 import ComingSoon from './screens/ComingSoon'
 import NewBeat from './screens/new-beat/NewBeat'
 import Schedule from './screens/Schedule'
+import Settings from './screens/Settings'
 import styles from './App.module.css'
 
 export default function App() {
@@ -156,6 +157,8 @@ export default function App() {
             onGoNewBeat={() => setScreen('new')}
             onGoSettings={() => setScreen('settings')}
           />
+        ) : screen === 'settings' ? (
+          <Settings />
         ) : (
           <ComingSoon screen={screen} reduceMotion={reduceMotion} />
         )}
