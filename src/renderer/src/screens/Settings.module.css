@@ -126,6 +126,96 @@
   pointer-events: none;
 }
 
+/* Tags: remembered tag track names */
+.tags {
+  padding-bottom: 16px;
+}
+
+.note {
+  margin: 0;
+  padding: 2px 0 10px;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  height: 32px;
+  padding-left: 12px;
+  border: 2px solid #000;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.chip svg {
+  flex: none;
+}
+
+.chipName {
+  margin-left: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--navy);
+  cursor: pointer;
+}
+
+.chip button:hover {
+  background: rgba(11, 25, 44, 0.12);
+}
+
+.chip button:focus-visible {
+  outline-color: var(--navy);
+  outline-offset: -3px;
+}
+
+.none {
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.addTag {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 2.5px dashed var(--text2);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.addTag::placeholder {
+  color: var(--text2);
+}
+
 /* Note written in the margin while the screen is unfinished */
 .later {
   margin: 34px 0 0;
