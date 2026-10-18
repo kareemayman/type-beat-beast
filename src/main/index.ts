@@ -2,6 +2,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import type { Theme } from '../shared/api'
+import { findFlStudio, pickFlStudio } from './flStudio'
 import { readProject } from './project'
 import { loadSettings, saveSettings } from './settings'
 
@@ -62,6 +63,10 @@ ipcMain.handle('project:read', (_event, path: unknown) => {
 // Settings: the page loads them once at start-up and sends each change. saveSettings checks every value.
 ipcMain.handle('settings:load', () => loadSettings())
 ipcMain.handle('settings:save', (_event, change: unknown) => saveSettings(change))
+
+// FL Studio: found on its own, or pointed to by the user in a file dialog opened over the asking window.
+ipcMain.handle('fl:find', () => findFlStudio())
+ipcMain.handle('fl:pick', (event) => pickFlStudio(BrowserWindow.fromWebContents(event.sender)))
 
 ipcMain.on('window:theme', (event, theme: unknown) => {
   if (theme !== 'dark' && theme !== 'light') return

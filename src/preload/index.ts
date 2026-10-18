@@ -10,6 +10,8 @@ const api: Api = {
   setTheme: (theme) => ipcRenderer.send('window:theme', theme),
   loadSettings: () => ipcRenderer.invoke('settings:load'),
   saveSettings: (change) => ipcRenderer.invoke('settings:save', change),
+  findFlStudio: () => ipcRenderer.invoke('fl:find'),
+  pickFlStudio: () => ipcRenderer.invoke('fl:pick'),
 }
 
 // Makes `window.api` available to the page. Only what's in `api` crosses over, nothing else.

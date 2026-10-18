@@ -9,12 +9,19 @@ describe('cleanSettings', () => {
   })
 
   it('keeps values of the right shape', () => {
-    const saved = { themePref: 'system', stems: false, wavBits: '32f', publishTime: '20:30', tagNames: ['Purchase your tracks today'] }
+    const saved = {
+      themePref: 'system',
+      stems: false,
+      wavBits: '32f',
+      publishTime: '20:30',
+      tagNames: ['Purchase your tracks today'],
+      flPath: 'F:\\Program Files\\Fl Studio 21\\FL64.exe',
+    }
     expect(cleanSettings(saved)).toEqual({ ...DEFAULT_SETTINGS, ...saved })
   })
 
   it('drops values of the wrong shape', () => {
-    const saved = { themePref: 'blue', stems: 'yes', mp3Rate: 320, publishTime: '25:00', producerName: '  ', tagNames: 'tag' }
+    const saved = { themePref: 'blue', stems: 'yes', mp3Rate: 320, publishTime: '25:00', producerName: '  ', tagNames: 'tag', flPath: 42 }
     expect(cleanSettings(saved)).toEqual(DEFAULT_SETTINGS)
   })
 

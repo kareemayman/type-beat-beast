@@ -122,6 +122,84 @@
   pointer-events: none;
 }
 
+/* Paths: where FL Studio is */
+.paths {
+  padding-bottom: 14px;
+}
+
+.path {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 12px;
+}
+
+.pathLine {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pathBox {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  overflow: hidden;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--card2);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 35px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browse {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px 15px 11px 14px;
+  background: var(--card2);
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.browse:active {
+  box-shadow: 1px 1px 0 var(--ink);
+  transform: translate(2px, 2px);
+}
+
+.found {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.found[data-state='ok'] {
+  color: var(--t-done);
+}
+
+.found[data-state='error'] {
+  color: var(--t-fail);
+}
+
+.found svg {
+  flex: none;
+}
+
 /* Tags: remembered tag track names */
 .tags {
   padding-bottom: 16px;

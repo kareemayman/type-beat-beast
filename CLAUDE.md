@@ -21,11 +21,11 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 ## Project structure and commands
 
-- `npm run dev` starts the app with hot reload · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types · `npm test` runs the Vitest tests (`*.test.ts` next to the code).
+- `npm run dev` starts the app with hot reload (only the React app reloads; after changing `src/main` or `src/preload`, stop and restart it) · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types · `npm test` runs the Vitest tests (`*.test.ts` next to the code).
 - Vitest stays on 3.2.x: adding Vitest 4.1 crashes npm 11.2 (`Cannot read properties of null (reading 'edgesOut')`) while it resolves Vitest's optional devtools peers.
-- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files; `settings.ts` keeps the settings file) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
+- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
 - Renderer: `lib/` state and logic (the settings provider, toasts, the beat model, the pipeline, small hooks) · `components/` shared UI (Card, TitleBar, Rail, Mascot, Celebration, controls) · `screens/` one folder or file per screen · `styles/tokens.css` the design tokens and every animation. Components use CSS Modules (`*.module.css`); animations whose speed depends on the BPM are set as inline styles.
-- IPC routes so far: `project:read` (invoke) reads an .flp; `settings:load` / `settings:save` (invoke) read and change the settings; `window:theme` (send) recolors the caption buttons. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
+- IPC routes so far: `project:read` (invoke) reads an .flp; `settings:load` / `settings:save` (invoke) read and change the settings; `fl:find` / `fl:pick` (invoke) find FL Studio or let the user point to it in Windows' file dialog; `window:theme` (send) recolors the caption buttons. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
 - Settings live in `%APPDATA%\Type Beat Beast\settings.json`, owned by the main process; every value goes through `cleanSettings`. Not localStorage: that belongs to the page's address, so the dev server (port 5173, or 5174 when 5173 is busy) and the built app each had their own copy. The first launch with the file hands over the old localStorage copy once.
 - When Claude starts a test copy of the app, it passes a throwaway data folder (`npx electron-vite dev -- --user-data-dir=<scratch folder>`), so it never reads or changes the user's settings.
 - The pipeline and the Schedule screen are demos for now (`DEMO` in `src/renderer/src/lib/pipeline.ts`): every step is simulated with made-up timings, the schedule shows made-up days, and the UI says so. Phases 2–4 replace them with real work.
@@ -36,6 +36,8 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 - When Claude starts the app, its shell inherits `ELECTRON_RUN_AS_NODE=1` from VS Code, which makes Electron act like plain Node (`app` is undefined). Run it as `env -u ELECTRON_RUN_AS_NODE npm run dev`; adding `ELECTRON_ENABLE_LOGGING=1` prints the page's console to the terminal. The user's own terminal doesn't have this problem.
 
 ## FL Studio command line (tested 2026-10-13)
+
+- FL's installer records where FL64.exe is: `HKLM\SOFTWARE\Image-Line\Shared\Paths` → `FL Studio`. The app reads it with `reg.exe` and reads the version (21.0.3.3517 here) from the exe's own VS_VERSION_INFO bytes; both take milliseconds. The path is saved in Settings once found.
 
 - `FL64.exe /R /Emp3,wav "<project>.flp"` renders without touching the FL window, then FL closes itself: about 35–50 s for a 2:17 beat, FL start-up included. Paths with spaces work when quoted. The `.flp` is left byte-for-byte unchanged.
 - Output goes next to the `.flp`, named after it: `<project>.mp3`, `<project>.wav`.

@@ -1,9 +1,11 @@
-import { useState, type ReactNode } from 'react'
-import { ChevronDown, MicVocal, X } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { ChevronDown, CircleAlert, CircleCheck, FolderOpen, MicVocal, X } from 'lucide-react'
+import type { FlStudioStatus } from '../../../shared/api'
 import Card from '../components/Card'
 import { Segmented, Switch } from '../components/controls'
 import { useMediaQuery } from '../lib/environment'
 import { useSettings } from '../lib/settings'
+import { useToast } from '../lib/toasts'
 import styles from './Settings.module.css'
 
 // Every quarter hour of the day, "00:00" to "23:45".
@@ -25,7 +27,27 @@ function Row({ title, sub, className = '', children }: { title: string; sub?: st
 // Built card by card from the design. Every change saves right away (see lib/settings.tsx).
 export default function Settings() {
   const { settings, update } = useSettings()
+  const toast = useToast()
+  const [fl, setFl] = useState<FlStudioStatus | null>(null) // null while it's looking
   const [tagDraft, setTagDraft] = useState('')
+
+  // FL Studio is looked up each time Settings opens, so a moved or reinstalled FL shows up here.
+  useEffect(() => {
+    let current = true
+    void window.api.findFlStudio().then((status) => {
+      if (current) setFl(status)
+    })
+    return () => {
+      current = false
+    }
+  }, [])
+
+  async function browseFl() {
+    const status = await window.api.pickFlStudio()
+    if (!status) return // the dialog was closed
+    if (status.ok) setFl(status)
+    else toast('failed', status.error)
+  }
   // Windows' own animation switch wins over "Full" (see useReducedMotion).
   const windowsReducesMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
@@ -44,6 +66,36 @@ export default function Settings() {
 
       <div className={styles.columns}>
         <div className={styles.column}>
+          <Card sticker="Paths" stickerColor="var(--orange)" className={`${styles.card} ${styles.paths}`}>
+            <div className={styles.path}>
+              <span className={styles.rowTitle}>FL Studio</span>
+              <div className={styles.pathLine}>
+                <span className={styles.pathBox} title={fl?.ok ? fl.path : undefined}>
+                  {fl?.ok ? fl.path : fl ? 'Not found' : 'Looking…'}
+                </span>
+                <button className={styles.browse} onClick={browseFl}>
+                  <FolderOpen size={16} strokeWidth={2.5} />
+                  Browse
+                </button>
+              </div>
+              <span className={styles.found} data-state={!fl ? 'looking' : fl.ok ? 'ok' : 'error'}>
+                {!fl ? (
+                  'Looking for FL Studio…'
+                ) : fl.ok ? (
+                  <>
+                    <CircleCheck size={16} strokeWidth={2.75} />
+                    Found it · FL Studio {fl.version}
+                  </>
+                ) : (
+                  <>
+                    <CircleAlert size={16} strokeWidth={2.75} />
+                    {fl.error}
+                  </>
+                )}
+              </span>
+            </div>
+          </Card>
+
           <Card sticker="Quality" stickerColor="var(--violet)" className={styles.card}>
             <Row title="WAV + stems" sub="Untagged renders">
               <Segmented
@@ -169,7 +221,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <p className={styles.later}>Next: paths. The BeatStars and YouTube logins come with their phases.</p>
+      <p className={styles.later}>Next: the output folder. The BeatStars and YouTube logins come with their phases.</p>
     </div>
   )
 }

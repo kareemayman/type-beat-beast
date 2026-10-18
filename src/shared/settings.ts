@@ -13,6 +13,7 @@ export interface Settings {
   mp3Rate: '192' | '256' | '320'
   publishTime: string // "HH:MM", local time
   tagNames: string[] // mixer track names the user has confirmed as their tag
+  flPath: string // FL64.exe; empty until the app finds it or the user picks it
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -26,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mp3Rate: '320',
   publishTime: '18:00',
   tagNames: [],
+  flPath: '',
 }
 
 const oneOf = <T extends string>(value: unknown, options: readonly T[], fallback: T): T => (options.includes(value as T) ? (value as T) : fallback)
@@ -46,5 +48,6 @@ export function cleanSettings(values: unknown, base: Settings = DEFAULT_SETTINGS
     mp3Rate: oneOf(v.mp3Rate, ['192', '256', '320'], base.mp3Rate),
     publishTime: typeof v.publishTime === 'string' && parseTime(v.publishTime) ? v.publishTime : base.publishTime,
     tagNames: Array.isArray(v.tagNames) ? v.tagNames.filter((name): name is string => typeof name === 'string' && name.trim() !== '') : base.tagNames,
+    flPath: typeof v.flPath === 'string' ? v.flPath : base.flPath,
   }
 }
