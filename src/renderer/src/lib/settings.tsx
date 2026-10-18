@@ -1,55 +1,52 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { Settings } from '../../../shared/settings'
 
-export interface Settings {
-  themePref: 'dark' | 'light' | 'system'
-  motion: 'full' | 'reduced'
-  producerName: string
-  stems: boolean
-  bsFile: 'mp3' | 'wav'
-  freeDownload: boolean
-  wavBits: '16' | '24' | '32f'
-  mp3Rate: '192' | '256' | '320'
-  publishTime: string
-  tagNames: string[] // mixer track names the user has confirmed as their tag
-}
-
-const DEFAULTS: Settings = {
-  themePref: 'dark',
-  motion: 'full',
-  producerName: 'kriko',
-  stems: true,
-  bsFile: 'mp3',
-  freeDownload: true,
-  wavBits: '24',
-  mp3Rate: '320',
-  publishTime: '18:00',
-  tagNames: [],
-}
-
-const STORAGE_KEY = 'tbb-settings-v1'
-
-function load(): Settings {
-  try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') }
-  } catch {
-    return DEFAULTS
-  }
-}
+export type { Settings }
 
 interface SettingsContextValue {
   settings: Settings
-  update(patch: Partial<Settings>): void
+  update(change: Partial<Settings>): void
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
 
-// Settings live in the page's localStorage for now. They move to a file the main process owns once the
-// main process needs them (render quality, FL Studio path).
+// Before settings moved into a file, they lived in this page's localStorage. On the very first launch with
+// the file, that old copy is handed over once, then deleted.
+const OLD_KEY = 'tbb-settings-v1'
+function takeOldCopy(): Partial<Settings> {
+  try {
+    const old = localStorage.getItem(OLD_KEY)
+    localStorage.removeItem(OLD_KEY)
+    return old ? JSON.parse(old) : {}
+  } catch {
+    return {}
+  }
+}
+
+// The main process owns the settings (src/main/settings.ts). This loads them once, then every change shows
+// up right away here while it's saved in the background.
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState(load)
-  useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)), [settings])
-  const update = useCallback((patch: Partial<Settings>) => setSettings((current) => ({ ...current, ...patch })), [])
-  const value = useMemo(() => ({ settings, update }), [settings, update])
+  const [settings, setSettings] = useState<Settings | null>(null)
+
+  useEffect(() => {
+    let current = true
+    void (async () => {
+      const loaded = (await window.api.loadSettings()) ?? (await window.api.saveSettings(takeOldCopy()))
+      if (current) setSettings(loaded)
+    })()
+    return () => {
+      current = false
+    }
+  }, [])
+
+  const update = useCallback((change: Partial<Settings>) => {
+    setSettings((settings) => settings && { ...settings, ...change })
+    window.api.saveSettings(change).catch((error) => console.error('Saving settings failed:', error))
+  }, [])
+
+  const value = useMemo(() => settings && { settings, update }, [settings, update])
+  // The app waits the few milliseconds it takes to load them, so nothing draws with the wrong theme first.
+  if (!value) return null
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>
 }
 

@@ -1,4 +1,5 @@
 import type { ReadProjectResult } from './project'
+import type { Settings } from './settings'
 
 export type Theme = 'dark' | 'light'
 
@@ -10,4 +11,8 @@ export interface Api {
   readProject(path: string): Promise<ReadProjectResult>
   // Recolors the minimize/maximize/close buttons Windows draws over the title bar.
   setTheme(theme: Theme): void
+  // The saved settings, or null on the very first launch.
+  loadSettings(): Promise<Settings | null>
+  // Saves a change and answers with all the settings as saved.
+  saveSettings(change: Partial<Settings>): Promise<Settings>
 }

@@ -8,6 +8,8 @@ const api: Api = {
   readProject: (path) => ipcRenderer.invoke('project:read', path),
   // send = one-way message with no answer. The main process listens with ipcMain.on.
   setTheme: (theme) => ipcRenderer.send('window:theme', theme),
+  loadSettings: () => ipcRenderer.invoke('settings:load'),
+  saveSettings: (change) => ipcRenderer.invoke('settings:save', change),
 }
 
 // Makes `window.api` available to the page. Only what's in `api` crosses over, nothing else.

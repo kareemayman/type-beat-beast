@@ -3,6 +3,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import type { Theme } from '../shared/api'
 import { readProject } from './project'
+import { loadSettings, saveSettings } from './settings'
 
 // Windows draws real minimize/maximize/close buttons over the app's own title bar; these are their colors.
 // The overlay is 37 px tall, 3 px short of the 40 px title bar, so the bar's bottom border shows under the buttons.
@@ -57,6 +58,10 @@ ipcMain.handle('project:read', (_event, path: unknown) => {
   }
   return readProject(path)
 })
+
+// Settings: the page loads them once at start-up and sends each change. saveSettings checks every value.
+ipcMain.handle('settings:load', () => loadSettings())
+ipcMain.handle('settings:save', (_event, change: unknown) => saveSettings(change))
 
 ipcMain.on('window:theme', (event, theme: unknown) => {
   if (theme !== 'dark' && theme !== 'light') return
