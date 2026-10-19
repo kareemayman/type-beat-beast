@@ -1,8 +1,10 @@
 import { useState, type CSSProperties } from 'react'
 import { CalendarClock, CalendarPlus, CircleAlert, CircleCheck, Clock, CloudUpload, Disc3, RotateCcw, SquarePlay, type LucideIcon } from 'lucide-react'
-import { addDays, dayKey, nextFreeSlot, parseTime, slotOn, type ScheduledVideo, type Time, type VideoStatus } from '../../../shared/schedule'
+import { addDays, dayKey, formatTime, fromDayKey, nextFreeSlot, parseTime, slotOn, type VideoStatus } from '../../../shared/schedule'
 import Card from '../components/Card'
 import Mascot, { type MascotKind } from '../components/Mascot'
+import { coverStripes } from '../lib/beat'
+import { demoVideos } from '../lib/demo'
 import { DEMO } from '../lib/pipeline'
 import { useSettings } from '../lib/settings'
 import { useToast } from '../lib/toasts'
@@ -18,35 +20,9 @@ const STATUS: Record<VideoStatus, { color: string; icon: LucideIcon; label: stri
 // Two weeks of slots, starting yesterday so the last drop stays in view.
 const DAYS = 14
 const TILTS = ['-1.5deg', '1deg', '-0.5deg', '1.5deg', '-1deg', '0.5deg', '-1.5deg']
-const STRIPES = [['#FF6500', '#FF7A26'], ['#38BDF8', '#0EA5E9'], ['#A78BFA', '#8B6FE8'], ['#22C55E', '#16A34A'], ['#FF4D6D', '#F43F5E'], ['#FACC15', '#EAB308']]
 
 const weekday = (date: Date) => date.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase() // "MON"
 const longDay = (date: Date) => date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) // "Mon 19 Oct"
-const clock = ({ hours, minutes }: Time) => `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-
-function fromDayKey(day: string): Date {
-  const [year, month, date] = day.split('-').map(Number)
-  return new Date(year, month - 1, date)
-}
-
-// Stand-in artwork until videos carry their cover: stripes in a color picked from the beat's name.
-function stripes(name: string): string {
-  const sum = [...name].reduce((total, char) => total + char.charCodeAt(0), 0)
-  const [a, b] = STRIPES[sum % STRIPES.length]
-  return `repeating-linear-gradient(135deg, ${a} 0 8px, ${b} 8px 16px)`
-}
-
-// Made-up days around today, like the design's sample. Phase 4 reads the real ones from YouTube.
-function demoVideos(now: Date, time: Time): ScheduledVideo[] {
-  const day = (offset: number) => dayKey(addDays(now, offset))
-  return [
-    { beat: '8 bit', day: day(-1), status: 'live' },
-    { beat: 'flowers', day: day(0), status: slotOn(now, time) <= now ? 'live' : 'scheduled' },
-    { beat: 'no hook', day: day(2), status: 'uploading', progress: 48 },
-    { beat: 'mercury', day: day(3), status: 'failed', error: "YouTube's daily upload limit was hit. Retry tomorrow, once it resets." },
-    { beat: 'glock tears', day: day(4), status: 'scheduled' },
-  ]
-}
 
 interface ScheduleProps {
   beatName: string // the beat waiting on the New beat screen, if it isn't scheduled yet
@@ -63,7 +39,7 @@ export default function Schedule({ beatName, mascot, reduceMotion: rm, onGoNewBe
 
   // Settings keeps the publish time as "HH:MM"; 18:00 is only a fallback, so a broken value can't break the screen.
   const time = parseTime(settings.publishTime) ?? { hours: 18, minutes: 0 }
-  const at = clock(time)
+  const at = formatTime(time)
   const now = new Date()
   const today = dayKey(now)
   const videos = demoEmpty ? [] : demoVideos(now, time)
@@ -144,7 +120,7 @@ export default function Schedule({ beatName, mascot, reduceMotion: rm, onGoNewBe
                   <li key={key}>
                     <div className={styles.pad} style={tilt}>
                       {head}
-                      <span className={styles.thumb} style={{ background: stripes(video.beat) }}>
+                      <span className={styles.thumb} style={{ background: coverStripes(video.beat) }}>
                         {video.status === 'uploading' && (
                           <span className={styles.upload} role="progressbar" aria-label="Upload" aria-valuenow={video.progress ?? 0}>
                             <span style={{ transform: `scaleX(${(video.progress ?? 0) / 100})` }} />

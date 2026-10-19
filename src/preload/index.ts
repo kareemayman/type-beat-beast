@@ -1,6 +1,14 @@
-// Preload: runs inside the window before the page loads, and decides exactly what the React app can use.
-import { contextBridge, ipcRenderer, webUtils } from 'electron'
+// Preload: runs inside each window before its page loads, and decides exactly what the React app can use.
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { Api } from '../shared/api'
+
+// Messages the main process sends on its own (main → page, like a server pushing over a WebSocket). Only the
+// data reaches the page, never the IPC event itself, which would hand the page ipcRenderer.
+function listen<T>(channel: string, listener: (data: T) => void): () => void {
+  const handler = (_event: IpcRendererEvent, data: T) => listener(data)
+  ipcRenderer.on(channel, handler)
+  return () => ipcRenderer.removeListener(channel, handler)
+}
 
 const api: Api = {
   pathForFile: (file) => webUtils.getPathForFile(file),
@@ -10,9 +18,13 @@ const api: Api = {
   setTheme: (theme) => ipcRenderer.send('window:theme', theme),
   loadSettings: () => ipcRenderer.invoke('settings:load'),
   saveSettings: (change) => ipcRenderer.invoke('settings:save', change),
+  onSettingsChanged: (listener) => listen('settings:changed', listener),
   findFlStudio: () => ipcRenderer.invoke('fl:find'),
   pickFlStudio: () => ipcRenderer.invoke('fl:pick'),
   pickOutputFolder: () => ipcRenderer.invoke('output:pick'),
+  showInFolder: (path) => ipcRenderer.send('shell:show', path),
+  openNotes: () => ipcRenderer.send('notes:open'),
+  onNotesChanged: (listener) => listen('notes:changed', listener),
 }
 
 // Makes `window.api` available to the page. Only what's in `api` crosses over, nothing else.

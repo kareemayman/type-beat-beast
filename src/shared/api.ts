@@ -18,10 +18,19 @@ export interface Api {
   loadSettings(): Promise<Settings | null>
   // Saves a change and answers with all the settings as saved.
   saveSettings(change: Partial<Settings>): Promise<Settings>
+  // Changes saved from another window, as they happen (the main process pushes them). Returns a function that
+  // stops listening.
+  onSettingsChanged(listener: (change: Partial<Settings>) => void): () => void
   // Finds FL Studio: the path in Settings, else the one FL's installer recorded. Saves what it finds.
   findFlStudio(): Promise<FlStudioStatus>
   // Opens Windows' file dialog to point to FL64.exe. Saved when it checks out; null if the user cancels.
   pickFlStudio(): Promise<FlStudioStatus | null>
   // Opens Windows' folder dialog for where beat folders go. Answers with the folder (the page saves it), or null.
   pickOutputFolder(): Promise<string | null>
+  // Opens Explorer with this file selected.
+  showInFolder(path: string): void
+  // Opens the Notes window, or brings it to the front.
+  openNotes(): void
+  // Whether the Notes window is open, each time that changes. Returns a function that stops listening.
+  onNotesChanged(listener: (open: boolean) => void): () => void
 }

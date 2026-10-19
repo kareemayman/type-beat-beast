@@ -23,10 +23,10 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 - `npm run dev` starts the app with hot reload (only the React app reloads; after changing `src/main` or `src/preload`, stop and restart it) · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types · `npm test` runs the Vitest tests (`*.test.ts` next to the code).
 - Vitest stays on 3.2.x: adding Vitest 4.1 crashes npm 11.2 (`Cannot read properties of null (reading 'edgesOut')`) while it resolves Vitest's optional devtools peers.
-- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
-- Renderer: `lib/` state and logic (the settings provider, toasts, the beat model, the pipeline, small hooks) · `components/` shared UI (Card, TitleBar, Rail, Mascot, Celebration, controls) · `screens/` one folder or file per screen · `styles/tokens.css` the design tokens and every animation. Components use CSS Modules (`*.module.css`); animations whose speed depends on the BPM are set as inline styles.
-- IPC routes so far: `project:read` (invoke) reads an .flp; `settings:load` / `settings:save` (invoke) read and change the settings; `fl:find` / `fl:pick` (invoke) find FL Studio or let the user point to it in Windows' file dialog; `output:pick` (invoke) opens Windows' folder dialog and answers with the folder, which the page saves; `window:theme` (send) recolors the caption buttons. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
-- Settings live in `%APPDATA%\Type Beat Beast\settings.json`, owned by the main process; every value goes through `cleanSettings`. Not localStorage: that belongs to the page's address, so the dev server (port 5173, or 5174 when 5173 is busy) and the built app each had their own copy. The first launch with the file hands over the old localStorage copy once.
+- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio; `windows.ts` creates every window with the same lockdown; `notes.ts` the Notes window) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
+- Renderer: two pages, `index.html` (main window, `src/main.tsx`) and `notes.html` (Notes window, `src/notes/`), both listed in `electron.vite.config.ts` · `lib/` state and logic (the settings provider, toasts, the beat model, the pipeline, demo data, small hooks) · `components/` shared UI (Card, TitleBar, Rail, Mascot, Celebration, controls) · `screens/` one folder or file per screen · `styles/tokens.css` the design tokens and every animation. Components use CSS Modules (`*.module.css`); animations whose speed depends on the BPM are set as inline styles.
+- IPC routes so far: `project:read` (invoke) reads an .flp; `settings:load` / `settings:save` (invoke) read and change the settings; `fl:find` / `fl:pick` (invoke) find FL Studio or let the user point to it in Windows' file dialog; `output:pick` (invoke) opens Windows' folder dialog and answers with the folder, which the page saves; `shell:show` (send) opens Explorer at a file; `notes:open` (send) opens or focuses Notes; `window:theme` (send) recolors the sending window's caption buttons. Pushed from main to the pages: `settings:changed` (the fields another window just saved) and `notes:changed` (Notes opened or closed); the preload's `listen` passes only the data, never the IPC event. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
+- Settings live in `%APPDATA%\Type Beat Beast\settings.json` (the Notes text too), owned by the main process; every value goes through `cleanSettings`. Not localStorage: that belongs to the page's address, so the dev server (port 5173, or 5174 when 5173 is busy) and the built app each had their own copy. The first launch with the file hands over the old localStorage copy once.
 - When Claude starts a test copy of the app, it passes a throwaway data folder (`npx electron-vite dev -- --user-data-dir=<scratch folder>`), so it never reads or changes the user's settings.
 - The pipeline and the Schedule screen are demos for now (`DEMO` in `src/renderer/src/lib/pipeline.ts`): every step is simulated with made-up timings, the schedule shows made-up days, and the UI says so. Phases 2–4 replace them with real work.
 - Built with electron-vite 5 (`electron.vite.config.ts`); TypeScript configs: `tsconfig.node.json` (main, preload, shared) and `tsconfig.web.json` (renderer, shared).
@@ -122,19 +122,9 @@ By default the app creates a folder named after the beat inside the folder that 
 
 Everything risky works on this PC: FL Studio renders from the command line (stems included), the app can mute the tag in a project copy, and YouTube uploads and scheduling work without Google's audit. Details are in the sections above.
 
-## Phase 1 — App skeleton and beat info
+## Phase 1 — App skeleton and screens (done 2026-10-19)
 
-Build the parts without screens first (while the user makes the design), then the screens from the mockups.
-
-- [x] Electron + TypeScript + React project
-- [x] Bridge between React and Node: preload + IPC (`project:read`, `window:theme`), security defaults on
-- [x] Custom title bar and dark/light themes (toggle in the title bar; Settings → Appearance comes with the Settings screen)
-- [x] New beat screen from the design: drop the .flp and cover, name/BPM/key, options, More (collabs, tag track, timers), the game-level pipeline with mascots, step log, Run, the BeatStars review and the publish celebration (pipeline is a demo)
-- [x] File-name parser for both naming patterns, with tests (`src/shared/parseBeatName.ts`)
-- [x] Schedule screen from the design: two weeks of daily slots starting yesterday, the next free slot, failed uploads, empty state (demo days until Phase 4)
-- [ ] History screen from the design
-- [x] Settings screen from the design: paths (FL Studio found on its own, output folder), quality, defaults, daily publish time, tags, appearance. The BeatStars and YouTube login cards come with Phases 3 and 4.
-- [ ] Notes window with the naming rules, as its own window
+Every screen from the design works: New beat (drop the .flp and cover, beat details, options, the game-level pipeline, the BeatStars review), Schedule (two weeks of daily slots from yesterday), History (the loaded beat live on top, then past runs), Settings (paths with FL Studio found on its own, quality, defaults, publish time, tags, appearance) and Notes in a window of its own. The pipeline, the schedule and past runs are still demo data. The BeatStars and YouTube login cards come with Phases 3 and 4.
 
 ## Phase 2 — Audio files
 
@@ -184,6 +174,8 @@ Build the parts without screens first (while the user makes the design), then th
 - **BeatStars plan:** Pro, so stem uploads are available.
 
 ## Open questions (answer when that phase starts)
+
+- [ ] Phase 2: match the user's own layout? Seen 2026-10-19: `F:\Projects\Beats 2026\10\published\flowers\` holds `flowers - 140 Em.flp`, `flowers - 140 Em.wav`, `flowers - 140 Em BEATSTARS.mp3`, `flowers - 140 Em YOUTUBE.mp3` and `flowers.rar`. So finished beats go into `<month folder>\published\<beat name>\`, and BeatStars and YouTube get separate MP3s.
 
 - [ ] Phase 3–4: BeatStars and YouTube title formats
 - [ ] Phase 3: BeatStars defaults (genre, moods, tags, licenses, free download settings)

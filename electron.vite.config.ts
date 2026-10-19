@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 
@@ -8,5 +9,14 @@ export default defineConfig({
   preload: {},
   renderer: {
     plugins: [react()],
+    // Two pages: index.html for the main window and notes.html for the Notes window.
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/renderer/index.html'),
+          notes: resolve(__dirname, 'src/renderer/notes.html'),
+        },
+      },
+    },
   },
 })

@@ -1,0 +1,156 @@
+.window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Title bar: drag it to move the window. Windows draws the caption buttons over the right 140 px. */
+.bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 40px;
+  padding-right: 140px;
+  border-bottom: 2.5px solid var(--ink);
+  background: var(--chrome);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.badge {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: 0 10px;
+  border: 2px solid #000;
+  border-radius: 7px 9px 6px 8px;
+  background: var(--yellow);
+  color: var(--navy);
+}
+
+.name {
+  font: 600 17px var(--font-display);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 28px 22px 18px;
+}
+
+/* The sticky note, with a strip of tape on top */
+.note {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  border: 3px solid #000;
+  border-radius: 6px 10px 8px 12px / 10px 6px 12px 8px;
+  background: #fff1a8;
+  box-shadow: 6px 6px 0 #000;
+  color: var(--navy);
+  transform: rotate(-1deg);
+}
+
+.tape {
+  position: absolute;
+  left: 50%;
+  top: -16px;
+  width: 96px;
+  height: 26px;
+  margin-left: -48px;
+  border: 2px solid #000;
+  border-radius: 3px;
+  background: rgba(56, 189, 248, 0.75);
+  transform: rotate(3deg);
+}
+
+.noteHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 16px 4px;
+}
+
+.heading {
+  flex: 1;
+  margin: 0;
+  font: 700 20px var(--font-display);
+}
+
+.reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 2px solid #000;
+  border-radius: 9px 11px 8px 10px;
+  background: #ffffff;
+  box-shadow: 2px 2px 0 #000;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reset:active {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.reset[data-armed='true'] {
+  background: var(--rose);
+}
+
+/* Ruled lines that scroll with the text */
+.text {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  padding: 4px 16px 12px;
+  border: 0;
+  background-color: transparent;
+  background-image: repeating-linear-gradient(transparent 0 27px, rgba(11, 25, 44, 0.16) 27px 28px);
+  background-attachment: local;
+  background-position: 0 4px;
+  color: var(--navy);
+  font: 700 15px/28px var(--font-ui);
+  resize: none;
+}
+
+.foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 18px;
+  border-top: 2.5px solid var(--ink);
+  background: var(--chrome);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.led {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #000;
+  border-radius: 999px;
+  background: var(--green);
+}
+
+.led[data-saving='true'] {
+  background: var(--orange);
+}
+
+.lines {
+  margin-left: auto;
+  font: 700 18px var(--font-hand);
+}

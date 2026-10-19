@@ -1,5 +1,6 @@
 // Small hooks for things outside React: OS settings, window visibility, the clock and the keyboard.
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import type { Theme } from '../../../shared/api'
 import { useSettings } from './settings'
 
 export function useMediaQuery(query: string): boolean {
@@ -15,6 +16,19 @@ export function useMediaQuery(query: string): boolean {
 
 // Electron passes Windows' dark/light setting to the page, so "System" theme is just a media query.
 export const useSystemDark = () => useMediaQuery('(prefers-color-scheme: dark)')
+
+// The theme on screen: Settings' choice, or Windows' when that's "System". It's applied to the page (CSS picks
+// colors from data-theme) and to the window's caption buttons, which the main process recolors.
+export function useTheme(): Theme {
+  const { settings } = useSettings()
+  const systemDark = useSystemDark()
+  const theme = settings.themePref === 'system' ? (systemDark ? 'dark' : 'light') : settings.themePref
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    window.api.setTheme(theme)
+  }, [theme])
+  return theme
+}
 
 export function useReducedMotion(): boolean {
   const { settings } = useSettings()

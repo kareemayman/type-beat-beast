@@ -34,7 +34,8 @@ export default function Rail({ screen, onNavigate, notesOpen, onNotes }: RailPro
         </button>
       ))}
       <div className={styles.spacer} />
-      <button className={`${styles.item} ${styles.notes}`} data-on={notesOpen} aria-label="Notes" title="Notes" aria-pressed={notesOpen} onClick={onNotes}>
+      {/* Opens the Notes window, or brings it to the front; lit while it's open. */}
+      <button className={`${styles.item} ${styles.notes}`} data-on={notesOpen} aria-label="Notes" title={notesOpen ? 'Notes (open)' : 'Notes'} onClick={onNotes}>
         <StickyNote size={22} strokeWidth={2.25} />
       </button>
     </nav>

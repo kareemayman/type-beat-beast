@@ -27,10 +27,21 @@ export function addDays(date: Date, days: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days)
 }
 
+// Hours and minutes → "18:00".
+export function formatTime({ hours, minutes }: Time): string {
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
 // "YYYY-MM-DD" in local time. (toISOString would give the UTC day, which can be a different one.)
 export function dayKey(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+// The other way round: "YYYY-MM-DD" → that day at midnight, local time.
+export function fromDayKey(day: string): Date {
+  const [year, month, date] = day.split('-').map(Number)
+  return new Date(year, month - 1, date)
 }
 
 // When a day's video goes out: that day at the publish time.

@@ -89,3 +89,12 @@ export function beatSeconds(bpm: string): number {
 export function tagTrack(beat: Beat): MixerTrack | undefined {
   return beat.tracks.find((track) => track.index === beat.tagIndex)
 }
+
+const STRIPES = [['#FF6500', '#FF7A26'], ['#38BDF8', '#0EA5E9'], ['#A78BFA', '#8B6FE8'], ['#22C55E', '#16A34A'], ['#FF4D6D', '#F43F5E'], ['#FACC15', '#EAB308']]
+
+// Stand-in artwork for a beat without a cover at hand: stripes in a color picked from its name.
+export function coverStripes(name: string): string {
+  const sum = [...name].reduce((total, char) => total + char.charCodeAt(0), 0)
+  const [a, b] = STRIPES[sum % STRIPES.length]
+  return `repeating-linear-gradient(135deg, ${a} 0 8px, ${b} 8px 16px)`
+}

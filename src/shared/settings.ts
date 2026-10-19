@@ -15,7 +15,20 @@ export interface Settings {
   tagNames: string[] // mixer track names the user has confirmed as their tag
   flPath: string // FL64.exe; empty until the app finds it or the user picks it
   outputFolder: string // where beat folders go; empty means next to each .flp
+  notes: string // the Notes window's text
 }
+
+// The Notes window starts with the naming rules (see CLAUDE.md, "Naming system").
+const DEFAULT_NOTES = `beat name - bpm key
+→ flowers - 140 Em
+
+main prod x collab prod - beat name - bpm key
+→ kriko x welcomeCarson - ozempic - 132 Fmin
+
+minor = m / min
+major = M / maj
+→ 8 bit - 151 D#m
+`
 
 export const DEFAULT_SETTINGS: Settings = {
   themePref: 'dark',
@@ -30,6 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tagNames: [],
   flPath: '',
   outputFolder: '',
+  notes: DEFAULT_NOTES,
 }
 
 const oneOf = <T extends string>(value: unknown, options: readonly T[], fallback: T): T => (options.includes(value as T) ? (value as T) : fallback)
@@ -52,5 +66,13 @@ export function cleanSettings(values: unknown, base: Settings = DEFAULT_SETTINGS
     tagNames: Array.isArray(v.tagNames) ? v.tagNames.filter((name): name is string => typeof name === 'string' && name.trim() !== '') : base.tagNames,
     flPath: typeof v.flPath === 'string' ? v.flPath : base.flPath,
     outputFolder: typeof v.outputFolder === 'string' ? v.outputFolder : base.outputFolder,
+    notes: typeof v.notes === 'string' ? v.notes : base.notes,
   }
+}
+
+// The fields a change touched, with their values as saved: what the other windows need to hear.
+// (Object.hasOwn, so a key like "toString" can't sneak in from the object's prototype.)
+export function savedPart(change: unknown, saved: Settings): Partial<Settings> {
+  const keys = Object.keys(typeof change === 'object' && change !== null ? change : {}).filter((key) => Object.hasOwn(saved, key))
+  return Object.fromEntries(keys.map((key) => [key, saved[key as keyof Settings]]))
 }

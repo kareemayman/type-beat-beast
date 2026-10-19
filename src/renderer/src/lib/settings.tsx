@@ -39,6 +39,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Changes saved from another window, like a theme switch in the main window while Notes is open. Only the
+  // fields that changed come over, so they can't undo a change this window just made to something else.
+  useEffect(() => window.api.onSettingsChanged((change) => setSettings((settings) => settings && { ...settings, ...change })), [])
+
   const update = useCallback((change: Partial<Settings>) => {
     setSettings((settings) => settings && { ...settings, ...change })
     window.api.saveSettings(change).catch((error) => console.error('Saving settings failed:', error))

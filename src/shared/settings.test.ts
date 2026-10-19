@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanSettings, DEFAULT_SETTINGS } from './settings'
+import { cleanSettings, DEFAULT_SETTINGS, savedPart } from './settings'
 
 describe('cleanSettings', () => {
   it('gives the defaults for nothing or junk', () => {
@@ -17,6 +17,7 @@ describe('cleanSettings', () => {
       tagNames: ['Purchase your tracks today'],
       flPath: 'F:\\Program Files\\Fl Studio 21\\FL64.exe',
       outputFolder: 'D:\\Beats\\Exports',
+      notes: 'my own rules',
     }
     expect(cleanSettings(saved)).toEqual({ ...DEFAULT_SETTINGS, ...saved })
   })
@@ -37,5 +38,18 @@ describe('cleanSettings', () => {
 
   it('ignores settings it no longer knows', () => {
     expect(cleanSettings({ sampleRate: '48' })).toEqual(DEFAULT_SETTINGS)
+  })
+})
+
+describe('savedPart', () => {
+  const saved = { ...DEFAULT_SETTINGS, themePref: 'light' as const, publishTime: '20:30' }
+
+  it('gives the touched fields with their saved values', () => {
+    expect(savedPart({ themePref: 'light', publishTime: 'not a time' }, saved)).toEqual({ themePref: 'light', publishTime: '20:30' })
+  })
+
+  it('leaves out unknown keys, prototype ones included', () => {
+    expect(savedPart({ sampleRate: '48', toString: 'x', constructor: 'y' }, saved)).toEqual({})
+    expect(savedPart(null, saved)).toEqual({})
   })
 })

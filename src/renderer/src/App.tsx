@@ -4,11 +4,11 @@ import { pickMascot, type MascotKind } from './components/Mascot'
 import Rail, { type Screen } from './components/Rail'
 import TitleBar from './components/TitleBar'
 import { beatSeconds, emptyBeat, tagTrack, type Beat } from './lib/beat'
-import { useDocumentHidden, useKonami, useLateNight, useReducedMotion, useSystemDark } from './lib/environment'
+import { useDocumentHidden, useKonami, useLateNight, useReducedMotion, useTheme } from './lib/environment'
 import { DEMO, usePipeline } from './lib/pipeline'
 import { useSettings } from './lib/settings'
 import { useToast } from './lib/toasts'
-import ComingSoon from './screens/ComingSoon'
+import History from './screens/History'
 import NewBeat from './screens/new-beat/NewBeat'
 import Schedule from './screens/Schedule'
 import Settings from './screens/Settings'
@@ -17,8 +17,7 @@ import styles from './App.module.css'
 export default function App() {
   const { settings, update } = useSettings()
   const toast = useToast()
-  const systemDark = useSystemDark()
-  const theme = settings.themePref === 'system' ? (systemDark ? 'dark' : 'light') : settings.themePref
+  const theme = useTheme()
   const hidden = useDocumentHidden()
   const reduceMotion = useReducedMotion()
   const lateNight = useLateNight()
@@ -28,13 +27,11 @@ export default function App() {
   const [beat, setBeat] = useState<Beat>(() => emptyBeat(settings))
   const [mascot, setMascot] = useState<MascotKind>(() => pickMascot())
   const [burst, setBurst] = useState<Burst | null>(null)
+  const [notesOpen, setNotesOpen] = useState(false)
   const pipeline = usePipeline({ stems: beat.stems, paused: hidden })
 
-  // Theme: CSS picks colors from data-theme, and the main process recolors Windows' caption buttons to match.
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    window.api.setTheme(theme)
-  }, [theme])
+  // The main process says when the Notes window opens or closes, so the rail's Notes button can light up.
+  useEffect(() => window.api.onNotesChanged(setNotesOpen), [])
 
   // Animations pause while the window is hidden (see tokens.css).
   useEffect(() => {
@@ -137,7 +134,7 @@ export default function App() {
         producerMode={producerMode}
         producerName={settings.producerName}
       />
-      <Rail screen={screen} onNavigate={setScreen} notesOpen={false} onNotes={() => toast('info', 'The Notes window gets built next.')} />
+      <Rail screen={screen} onNavigate={setScreen} notesOpen={notesOpen} onNotes={() => window.api.openNotes()} />
       <main className={`${styles.main} grid-bg`}>
         {screen === 'new' ? (
           <NewBeat
@@ -165,7 +162,7 @@ export default function App() {
         ) : screen === 'settings' ? (
           <Settings />
         ) : (
-          <ComingSoon screen={screen} reduceMotion={reduceMotion} />
+          <History beat={beat} pipeline={pipeline} />
         )}
       </main>
       <Celebration burst={burst} mascot={mascot} bpm={beat.bpm} reduceMotion={reduceMotion} />

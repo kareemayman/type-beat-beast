@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, dayKey, nextFreeSlot, parseTime, type ScheduledVideo } from './schedule'
+import { addDays, dayKey, formatTime, fromDayKey, nextFreeSlot, parseTime, type ScheduledVideo } from './schedule'
 
 const SIX_PM = { hours: 18, minutes: 0 }
 const october = (day: number, hours = 0, minutes = 0) => new Date(2026, 9, day, hours, minutes) // local time
@@ -15,12 +15,22 @@ describe('parseTime', () => {
   it('rejects anything else', () => {
     for (const text of ['', '24:00', '18:60', '18', '18:0', '6 PM']) expect(parseTime(text)).toBeNull()
   })
+
+  it('round-trips through formatTime', () => {
+    expect(formatTime({ hours: 7, minutes: 5 })).toBe('07:05')
+    expect(formatTime(parseTime('18:00')!)).toBe('18:00')
+  })
 })
 
 describe('dayKey and addDays', () => {
   it('use the local day', () => {
     expect(dayKey(october(5, 23, 59))).toBe('2026-10-05')
     expect(dayKey(october(18, 0, 1))).toBe('2026-10-18')
+  })
+
+  it('turn back into dates with fromDayKey', () => {
+    expect(fromDayKey('2026-10-18')).toEqual(october(18))
+    expect(dayKey(fromDayKey('2027-01-31'))).toBe('2027-01-31')
   })
 
   it('roll over months and years', () => {

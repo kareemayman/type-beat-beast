@@ -1,0 +1,144 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  height: 100%;
+  padding: var(--page-margin);
+  overflow: auto;
+}
+
+.title {
+  margin: 0;
+  font: 700 34px/1.1 var(--font-display);
+}
+
+.sub {
+  margin-top: 4px;
+  color: var(--text2);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 6px;
+}
+
+/* One run: art, name, the 7 step dots, what became of it, how long it took, its folder */
+.row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 150px 220px 52px 150px;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 14px 10px 10px;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--r-small);
+  background: var(--card);
+  box-shadow: 4px 4px 0 var(--ink);
+  transform: rotate(var(--tilt, 0deg));
+}
+
+.art {
+  width: 56px;
+  height: 56px;
+  border: 2px solid #000;
+  border-radius: 10px;
+}
+
+.titles {
+  min-width: 0;
+}
+
+.beat,
+.meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.beat {
+  font: 600 20px/1.2 var(--font-display);
+}
+
+.meta {
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dots {
+  display: flex;
+  gap: 5px;
+}
+
+.dots span {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #000;
+  border-radius: 999px;
+}
+
+.result {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 30px;
+  padding: 0 12px;
+  overflow: hidden;
+  border: 2px solid #000;
+  border-radius: 999px;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.result svg {
+  flex: none;
+}
+
+.result span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.time {
+  color: var(--text2);
+  font: 600 18px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.open {
+  display: inline-flex;
+  justify-self: end;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px 14px 11px 13px;
+  background: var(--card2);
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.open:active {
+  box-shadow: 1px 1px 0 var(--ink);
+  transform: translate(2px, 2px);
+}
+
+/* Demo note, written in the margin */
+.demo {
+  margin: 0;
+  color: var(--text2);
+  font: 700 20px var(--font-hand);
+  text-align: center;
+}
