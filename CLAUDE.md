@@ -23,7 +23,7 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 - `npm run dev` starts the app with hot reload (only the React app reloads; after changing `src/main` or `src/preload`, stop and restart it) · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types · `npm test` runs the Vitest tests (`*.test.ts` next to the code).
 - Vitest stays on 3.2.x: adding Vitest 4.1 crashes npm 11.2 (`Cannot read properties of null (reading 'edgesOut')`) while it resolves Vitest's optional devtools peers.
-- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio; `windows.ts` creates every window with the same lockdown; `notes.ts` the Notes window) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
+- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files and writes the tag-switched copies; `beatFolder.ts` works out a beat's folder and file names; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio; `windows.ts` creates every window with the same lockdown; `notes.ts` the Notes window) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
 - Renderer: two pages, `index.html` (main window, `src/main.tsx`) and `notes.html` (Notes window, `src/notes/`), both listed in `electron.vite.config.ts` · `lib/` state and logic (the settings provider, toasts, the beat model, the pipeline, demo data, small hooks) · `components/` shared UI (Card, TitleBar, Rail, Mascot, Celebration, controls) · `screens/` one folder or file per screen · `styles/tokens.css` the design tokens and every animation. Components use CSS Modules (`*.module.css`); animations whose speed depends on the BPM are set as inline styles.
 - IPC routes so far: `project:read` (invoke) reads an .flp; `settings:load` / `settings:save` (invoke) read and change the settings; `fl:find` / `fl:pick` (invoke) find FL Studio or let the user point to it in Windows' file dialog; `output:pick` (invoke) opens Windows' folder dialog and answers with the folder, which the page saves; `shell:show` (send) opens Explorer at a file; `notes:open` (send) opens or focuses Notes; `window:theme` (send) recolors the sending window's caption buttons. Pushed from main to the pages: `settings:changed` (the fields another window just saved) and `notes:changed` (Notes opened or closed); the preload's `listen` passes only the data, never the IPC event. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
 - Settings live in `%APPDATA%\Type Beat Beast\settings.json` (the Notes text too), owned by the main process; every value goes through `cleanSettings`. Not localStorage: that belongs to the page's address, so the dev server (port 5173, or 5174 when 5173 is busy) and the built app each had their own copy. The first launch with the file hands over the old localStorage copy once.
@@ -106,7 +106,17 @@ No tag name is hard-coded, so it works if the user changes their tag or someone 
 
 ## Beat folder
 
-By default the app creates a folder named after the beat inside the folder that holds the `.flp` (Settings → Paths → Output folder can send beat folders somewhere else instead: `outputFolder`, empty means next to the `.flp`), and puts every rendered file and the video there, along with a status file so a failed step can be retried without redoing the ones before it. When everything has finished, it moves the original `.flp` and the cover image into that folder too.
+Each published beat gets a folder named after the beat (as shown in the beat details), next to its `.flp`; Settings → Paths → Output folder can send beat folders somewhere else (`outputFolder`, empty means next to the `.flp`). The user's spec (2026-10-19), with `<project>` the `.flp`'s name without `.flp`:
+
+```
+<folder of the .flp>\<beat name>\
+  <project>.flp           moved in at the very end
+  <project>.wav           untagged
+  <project> TAGGED.mp3    tagged; the one MP3 for both BeatStars and the YouTube video
+  <beat name>.rar         the stems
+```
+
+`src/main/beatFolder.ts` works out these paths (beat names are made safe for Windows). A status file in the folder will let a failed step be retried without redoing the ones before it.
 
 ## The flow for one beat
 
@@ -116,7 +126,7 @@ By default the app creates a folder named after the beat inside the folder that 
 4. **Auto:** pack the stems into a RAR, leaving out Master and Current.
 5. **Auto:** fill in the whole BeatStars upload in Chrome, including collaborators. **Manual:** the user reviews and confirms, then it publishes.
 6. **Auto:** make the YouTube video (cover + tagged audio, with an MP3 audio track), upload it with the title, description and tags, and schedule it for the next free day at the daily publish time.
-7. **Auto:** move the original `.flp` and the cover image into the beat folder.
+7. **Auto:** move the original `.flp` into the beat folder.
 
 ## Phase 0 — Tests (done 2026-10-13)
 
@@ -128,8 +138,9 @@ Every screen from the design works: New beat (drop the .flp and cover, beat deta
 
 ## Phase 2 — Audio files
 
-- [ ] Beat folder: create it in the output location; at the very end, move the `.flp` and cover image into it (check the moved `.flp` still finds its samples)
-- [ ] Temporary project copies with the tag track muted or on (reading the mixer tracks is done: `src/main/project.ts`, tested on a synthetic .flp and on flowers)
+- [x] Beat folder plan: its path and file names (`beatFiles` in `src/main/beatFolder.ts`, see "Beat folder")
+- [ ] Beat folder: create it at the start; at the very end, move the `.flp` into it (check the moved `.flp` still finds its samples)
+- [x] Project copies with the tag track muted or on (`copyProject` in `src/main/project.ts`): only the tag's on/off bit changes, and it never writes over an existing file. Tested on a synthetic .flp and on a copy of flowers (tag = track 11).
 - [x] Tag picker in the beat details (More card): remembered names first, else the last track as a guess, plus "No tag"; running remembers the pick
 - [ ] Render runner: make sure FL is closed, set the registry values, run the command line, wait for FL to exit, restore the user's values
 - [ ] Untagged WAV + stems in one split render from the muted copy (a normal WAV render when stems are off)
@@ -172,14 +183,14 @@ Every screen from the design works: New beat (drop the .flp and cover, beat deta
 - **Stems archive:** RAR with WinRAR. Fall back to ZIP if BeatStars rejects RAR.
 - **Logins:** the app never stores or types passwords. BeatStars: the user logs in once in the app's own Chrome profile. YouTube: a one-time Google permission screen.
 - **BeatStars plan:** Pro, so stem uploads are available.
+- **One tagged MP3:** the same `<project> TAGGED.mp3` goes to BeatStars and into the YouTube video (user, 2026-10-19). Their older beats had separate BEATSTARS and YOUTUBE MP3s.
 
 ## Open questions (answer when that phase starts)
 
-- [ ] Phase 2: match the user's own layout? Seen 2026-10-19: `F:\Projects\Beats 2026\10\published\flowers\` holds `flowers - 140 Em.flp`, `flowers - 140 Em.wav`, `flowers - 140 Em BEATSTARS.mp3`, `flowers - 140 Em YOUTUBE.mp3` and `flowers.rar`. So finished beats go into `<month folder>\published\<beat name>\`, and BeatStars and YouTube get separate MP3s.
-
+- [ ] Phase 2: the cover image. Copy it into the beat folder, move it there, or leave it alone? (One cover may be used for several beats.)
+- [ ] Phase 4: keep the YouTube video (.mp4) in the beat folder after the upload, or delete it?
 - [ ] Phase 3–4: BeatStars and YouTube title formats
 - [ ] Phase 3: BeatStars defaults (genre, moods, tags, licenses, free download settings)
 - [ ] Phase 4: YouTube description template, tags, category, playlist; daily publish time and timezone
-- [ ] Phase 4: is the YouTube audio the same tagged MP3 as BeatStars, or a different tag?
 - [ ] Phase 4: where the artist name in "X Type Beat" comes from
 - [ ] Phase 4: notify subscribers when a scheduled video goes live? (YouTube's default: yes)

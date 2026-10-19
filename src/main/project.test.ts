@@ -1,8 +1,8 @@
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { readProject } from './project'
+import { copyProject, readProject } from './project'
 
 // Builds a tiny .flp: the FLhd header, then an FLdt chunk holding the given events.
 function flp(events: Buffer[]): Buffer {
@@ -81,5 +81,87 @@ describe('readProject', () => {
     const result = await readProject(process.env.TBB_REAL_FLP!)
     expect(result.ok).toBe(true)
     if (result.ok) console.log(result.project.flVersion, result.project.tracks)
+  })
+})
+
+describe('copyProject', () => {
+  async function tracksOf(path: string) {
+    const result = await readProject(path)
+    if (!result.ok) throw new Error(result.error)
+    return result.project.tracks
+  }
+
+  // How many bytes differ between two files of the same length.
+  const changedBytes = (a: Buffer, b: Buffer) => a.reduce((count, byte, i) => count + (byte === b[i] ? 0 : 1), 0)
+
+  // Track 3 is the tag.
+  const project = (tagOn: boolean) => flp([...track(null), ...track('Kick'), ...track(null), ...track('Purchase your tracks today', tagOn)])
+
+  it('mutes the tag in the copy, changing one byte, and leaves the original alone', async () => {
+    const source = writeProject('flowers - 140 Em.flp', project(true))
+    const before = readFileSync(source)
+    const copy = join(dirname(source), 'untagged.flp')
+
+    await copyProject(source, copy, { index: 3, on: false })
+
+    expect(await tracksOf(copy)).toContainEqual({ index: 3, name: 'Purchase your tracks today', muted: true })
+    expect(changedBytes(before, readFileSync(copy))).toBe(1)
+    expect(readFileSync(source).equals(before)).toBe(true)
+  })
+
+  it('switches a muted tag on', async () => {
+    const source = writeProject('flowers - 140 Em.flp', project(false))
+    const copy = join(dirname(source), 'tagged.flp')
+
+    await copyProject(source, copy, { index: 3, on: true })
+
+    expect(await tracksOf(copy)).toContainEqual({ index: 3, name: 'Purchase your tracks today', muted: false })
+    expect(changedBytes(readFileSync(source), readFileSync(copy))).toBe(1)
+  })
+
+  it('copies as is when the beat has no tag track', async () => {
+    const source = writeProject('somethings never change - 170 Bmaj.flp', project(true))
+    const copy = join(dirname(source), 'copy.flp')
+
+    await copyProject(source, copy, null)
+
+    expect(readFileSync(copy).equals(readFileSync(source))).toBe(true)
+  })
+
+  it('never writes over the original or any file already there', async () => {
+    const source = writeProject('flowers - 140 Em.flp', project(true))
+    const before = readFileSync(source)
+    const taken = join(dirname(source), 'taken.flp')
+    writeFileSync(taken, 'keep me')
+
+    await expect(copyProject(source, source, { index: 3, on: false })).rejects.toThrow('must not replace its original')
+    await expect(copyProject(source, taken, null)).rejects.toThrow()
+
+    expect(readFileSync(source).equals(before)).toBe(true)
+    expect(readFileSync(taken, 'utf8')).toBe('keep me')
+  })
+
+  it('says so when the track has no on/off switch', async () => {
+    const source = writeProject('beat.flp', flp([...track(null), Buffer.from([147, 0, 0, 0, 0])]))
+    await expect(copyProject(source, join(dirname(source), 'copy.flp'), { index: 1, on: false })).rejects.toThrow('no on/off switch')
+  })
+
+  // Optional check against a real project (the same TBB_REAL_FLP): copies with the last named track muted and on.
+  it.runIf(process.env.TBB_REAL_FLP)('switches the last named track in copies of a real project', async () => {
+    const source = process.env.TBB_REAL_FLP!
+    const before = readFileSync(source)
+    const tag = (await tracksOf(source)).at(-1)!
+    const folder = mkdtempSync(join(tmpdir(), 'tbb-'))
+    const muted = join(folder, `muted ${basename(source)}`)
+    const on = join(folder, `on ${basename(source)}`)
+
+    await copyProject(source, muted, { index: tag.index, on: false })
+    await copyProject(source, on, { index: tag.index, on: true })
+
+    expect((await tracksOf(muted)).find((track) => track.index === tag.index)?.muted).toBe(true)
+    expect((await tracksOf(on)).find((track) => track.index === tag.index)?.muted).toBe(false)
+    expect(changedBytes(before, readFileSync(muted)) + changedBytes(before, readFileSync(on))).toBe(1)
+    expect(readFileSync(source).equals(before)).toBe(true)
+    console.log(`Switched track ${tag.index} "${tag.name}" (muted in the original: ${tag.muted})`)
   })
 })
