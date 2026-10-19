@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ChevronDown, CircleAlert, CircleCheck, FolderOpen, MicVocal, X } from 'lucide-react'
+import { ChevronDown, CircleAlert, CircleCheck, FolderOpen, MicVocal, Undo2, X } from 'lucide-react'
 import type { FlStudioStatus } from '../../../shared/api'
 import Card from '../components/Card'
 import { Segmented, Switch } from '../components/controls'
@@ -48,6 +48,11 @@ export default function Settings() {
     if (status.ok) setFl(status)
     else toast('failed', status.error)
   }
+
+  async function browseOutput() {
+    const folder = await window.api.pickOutputFolder()
+    if (folder) update({ outputFolder: folder })
+  }
   // Windows' own animation switch wins over "Full" (see useReducedMotion).
   const windowsReducesMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
@@ -78,7 +83,7 @@ export default function Settings() {
                   Browse
                 </button>
               </div>
-              <span className={styles.found} data-state={!fl ? 'looking' : fl.ok ? 'ok' : 'error'}>
+              <span className={styles.status} data-state={!fl ? 'looking' : fl.ok ? 'ok' : 'error'}>
                 {!fl ? (
                   'Looking for FL Studio…'
                 ) : fl.ok ? (
@@ -93,6 +98,36 @@ export default function Settings() {
                   </>
                 )}
               </span>
+            </div>
+
+            <div className={styles.path}>
+              <span className={styles.rowTitle}>
+                Output folder <span className={styles.pathHint}>· one folder per beat</span>
+              </span>
+              <div className={styles.pathLine}>
+                <span className={styles.pathBox} title={settings.outputFolder || undefined}>
+                  {settings.outputFolder ? (
+                    <>
+                      {settings.outputFolder}
+                      <span className={styles.pathHint}>\{'{beat name}'}</span>
+                    </>
+                  ) : (
+                    'Next to each .flp'
+                  )}
+                </span>
+                <button className={styles.browse} onClick={browseOutput}>
+                  <FolderOpen size={16} strokeWidth={2.5} />
+                  Browse
+                </button>
+              </div>
+              {settings.outputFolder ? (
+                <button className={styles.reset} onClick={() => update({ outputFolder: '' })}>
+                  <Undo2 size={14} strokeWidth={2.75} />
+                  Back to next to each .flp
+                </button>
+              ) : (
+                <span className={styles.status}>Each beat gets a folder beside its .flp.</span>
+              )}
             </div>
           </Card>
 
@@ -221,7 +256,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <p className={styles.later}>Next: the output folder. The BeatStars and YouTube logins come with their phases.</p>
+      <p className={styles.later}>The BeatStars and YouTube logins get their cards in Phases 3 and 4.</p>
     </div>
   )
 }

@@ -16,12 +16,13 @@ describe('cleanSettings', () => {
       publishTime: '20:30',
       tagNames: ['Purchase your tracks today'],
       flPath: 'F:\\Program Files\\Fl Studio 21\\FL64.exe',
+      outputFolder: 'D:\\Beats\\Exports',
     }
     expect(cleanSettings(saved)).toEqual({ ...DEFAULT_SETTINGS, ...saved })
   })
 
   it('drops values of the wrong shape', () => {
-    const saved = { themePref: 'blue', stems: 'yes', mp3Rate: 320, publishTime: '25:00', producerName: '  ', tagNames: 'tag', flPath: 42 }
+    const saved = { themePref: 'blue', stems: 'yes', mp3Rate: 320, publishTime: '25:00', producerName: '  ', tagNames: 'tag', flPath: 42, outputFolder: null }
     expect(cleanSettings(saved)).toEqual(DEFAULT_SETTINGS)
   })
 

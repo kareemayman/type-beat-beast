@@ -122,7 +122,7 @@
   pointer-events: none;
 }
 
-/* Paths: where FL Studio is */
+/* Paths: where FL Studio is, where beat folders go */
 .paths {
   padding-bottom: 14px;
 }
@@ -132,6 +132,16 @@
   flex-direction: column;
   gap: 8px;
   padding: 4px 0 12px;
+}
+
+.path + .path {
+  padding: 12px 0 0;
+  border-top: 2px dashed var(--track);
+}
+
+.pathHint {
+  color: var(--text2);
+  font-size: 12px;
 }
 
 .pathLine {
@@ -179,7 +189,7 @@
   transform: translate(2px, 2px);
 }
 
-.found {
+.status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -188,16 +198,35 @@
   font-weight: 800;
 }
 
-.found[data-state='ok'] {
+.status[data-state='ok'] {
   color: var(--t-done);
 }
 
-.found[data-state='error'] {
+.status[data-state='error'] {
   color: var(--t-fail);
 }
 
-.found svg {
+.status svg {
   flex: none;
+}
+
+/* A quiet way back to the default */
+.reset {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reset:hover {
+  color: var(--text);
 }
 
 /* Tags: remembered tag track names */

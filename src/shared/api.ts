@@ -22,4 +22,6 @@ export interface Api {
   findFlStudio(): Promise<FlStudioStatus>
   // Opens Windows' file dialog to point to FL64.exe. Saved when it checks out; null if the user cancels.
   pickFlStudio(): Promise<FlStudioStatus | null>
+  // Opens Windows' folder dialog for where beat folders go. Answers with the folder (the page saves it), or null.
+  pickOutputFolder(): Promise<string | null>
 }

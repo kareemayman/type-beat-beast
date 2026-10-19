@@ -1,5 +1,5 @@
 // Main process: the app's "server". It runs Node.js, owns the windows, and has full access to the PC.
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } from 'electron'
 import { join } from 'node:path'
 import type { Theme } from '../shared/api'
 import { findFlStudio, pickFlStudio } from './flStudio'
@@ -67,6 +67,18 @@ ipcMain.handle('settings:save', (_event, change: unknown) => saveSettings(change
 // FL Studio: found on its own, or pointed to by the user in a file dialog opened over the asking window.
 ipcMain.handle('fl:find', () => findFlStudio())
 ipcMain.handle('fl:pick', (event) => pickFlStudio(BrowserWindow.fromWebContents(event.sender)))
+
+// Output folder: Windows' folder dialog. Only the answer goes back; the page saves it like any other setting.
+ipcMain.handle('output:pick', async (event) => {
+  const parent = BrowserWindow.fromWebContents(event.sender)
+  const options: OpenDialogOptions = {
+    title: 'Where should beat folders go?',
+    defaultPath: (await loadSettings())?.outputFolder || undefined,
+    properties: ['openDirectory'],
+  }
+  const { canceled, filePaths } = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options)
+  return canceled ? null : (filePaths[0] ?? null)
+})
 
 ipcMain.on('window:theme', (event, theme: unknown) => {
   if (theme !== 'dark' && theme !== 'light') return

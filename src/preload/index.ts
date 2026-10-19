@@ -12,6 +12,7 @@ const api: Api = {
   saveSettings: (change) => ipcRenderer.invoke('settings:save', change),
   findFlStudio: () => ipcRenderer.invoke('fl:find'),
   pickFlStudio: () => ipcRenderer.invoke('fl:pick'),
+  pickOutputFolder: () => ipcRenderer.invoke('output:pick'),
 }
 
 // Makes `window.api` available to the page. Only what's in `api` crosses over, nothing else.

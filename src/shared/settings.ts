@@ -14,6 +14,7 @@ export interface Settings {
   publishTime: string // "HH:MM", local time
   tagNames: string[] // mixer track names the user has confirmed as their tag
   flPath: string // FL64.exe; empty until the app finds it or the user picks it
+  outputFolder: string // where beat folders go; empty means next to each .flp
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -28,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   publishTime: '18:00',
   tagNames: [],
   flPath: '',
+  outputFolder: '',
 }
 
 const oneOf = <T extends string>(value: unknown, options: readonly T[], fallback: T): T => (options.includes(value as T) ? (value as T) : fallback)
@@ -49,5 +51,6 @@ export function cleanSettings(values: unknown, base: Settings = DEFAULT_SETTINGS
     publishTime: typeof v.publishTime === 'string' && parseTime(v.publishTime) ? v.publishTime : base.publishTime,
     tagNames: Array.isArray(v.tagNames) ? v.tagNames.filter((name): name is string => typeof name === 'string' && name.trim() !== '') : base.tagNames,
     flPath: typeof v.flPath === 'string' ? v.flPath : base.flPath,
+    outputFolder: typeof v.outputFolder === 'string' ? v.outputFolder : base.outputFolder,
   }
 }

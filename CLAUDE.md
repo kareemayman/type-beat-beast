@@ -25,7 +25,7 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 - Vitest stays on 3.2.x: adding Vitest 4.1 crashes npm 11.2 (`Cannot read properties of null (reading 'edgesOut')`) while it resolves Vitest's optional devtools peers.
 - `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
 - Renderer: `lib/` state and logic (the settings provider, toasts, the beat model, the pipeline, small hooks) · `components/` shared UI (Card, TitleBar, Rail, Mascot, Celebration, controls) · `screens/` one folder or file per screen · `styles/tokens.css` the design tokens and every animation. Components use CSS Modules (`*.module.css`); animations whose speed depends on the BPM are set as inline styles.
-- IPC routes so far: `project:read` (invoke) reads an .flp; `settings:load` / `settings:save` (invoke) read and change the settings; `fl:find` / `fl:pick` (invoke) find FL Studio or let the user point to it in Windows' file dialog; `window:theme` (send) recolors the caption buttons. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
+- IPC routes so far: `project:read` (invoke) reads an .flp; `settings:load` / `settings:save` (invoke) read and change the settings; `fl:find` / `fl:pick` (invoke) find FL Studio or let the user point to it in Windows' file dialog; `output:pick` (invoke) opens Windows' folder dialog and answers with the folder, which the page saves; `window:theme` (send) recolors the caption buttons. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
 - Settings live in `%APPDATA%\Type Beat Beast\settings.json`, owned by the main process; every value goes through `cleanSettings`. Not localStorage: that belongs to the page's address, so the dev server (port 5173, or 5174 when 5173 is busy) and the built app each had their own copy. The first launch with the file hands over the old localStorage copy once.
 - When Claude starts a test copy of the app, it passes a throwaway data folder (`npx electron-vite dev -- --user-data-dir=<scratch folder>`), so it never reads or changes the user's settings.
 - The pipeline and the Schedule screen are demos for now (`DEMO` in `src/renderer/src/lib/pipeline.ts`): every step is simulated with made-up timings, the schedule shows made-up days, and the UI says so. Phases 2–4 replace them with real work.
@@ -106,7 +106,7 @@ No tag name is hard-coded, so it works if the user changes their tag or someone 
 
 ## Beat folder
 
-By default the app creates a folder named after the beat inside the folder that holds the `.flp`, and puts every rendered file and the video there, along with a status file so a failed step can be retried without redoing the ones before it. When everything has finished, it moves the original `.flp` and the cover image into that folder too.
+By default the app creates a folder named after the beat inside the folder that holds the `.flp` (Settings → Paths → Output folder can send beat folders somewhere else instead: `outputFolder`, empty means next to the `.flp`), and puts every rendered file and the video there, along with a status file so a failed step can be retried without redoing the ones before it. When everything has finished, it moves the original `.flp` and the cover image into that folder too.
 
 ## The flow for one beat
 
@@ -133,7 +133,7 @@ Build the parts without screens first (while the user makes the design), then th
 - [x] File-name parser for both naming patterns, with tests (`src/shared/parseBeatName.ts`)
 - [x] Schedule screen from the design: two weeks of daily slots starting yesterday, the next free slot, failed uploads, empty state (demo days until Phase 4)
 - [ ] History screen from the design
-- [ ] Settings screen from the design (paths, quality, defaults, YouTube, BeatStars, tags, appearance)
+- [x] Settings screen from the design: paths (FL Studio found on its own, output folder), quality, defaults, daily publish time, tags, appearance. The BeatStars and YouTube login cards come with Phases 3 and 4.
 - [ ] Notes window with the naming rules, as its own window
 
 ## Phase 2 — Audio files
