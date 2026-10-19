@@ -1,8 +1,17 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { copyProject, readProject } from './project'
+
+// Every test project goes in a fresh temp folder; they're all deleted at the end.
+const tempFolders: string[] = []
+const tempFolder = () => {
+  const folder = mkdtempSync(join(tmpdir(), 'tbb-'))
+  tempFolders.push(folder)
+  return folder
+}
+afterAll(() => tempFolders.forEach((folder) => rmSync(folder, { recursive: true, force: true })))
 
 // Builds a tiny .flp: the FLhd header, then an FLdt chunk holding the given events.
 function flp(events: Buffer[]): Buffer {
@@ -38,7 +47,7 @@ function track(name: string | null, on = true): Buffer[] {
 }
 
 function writeProject(fileName: string, data: Buffer): string {
-  const path = join(mkdtempSync(join(tmpdir(), 'tbb-')), fileName)
+  const path = join(tempFolder(), fileName)
   writeFileSync(path, data)
   return path
 }
@@ -151,7 +160,7 @@ describe('copyProject', () => {
     const source = process.env.TBB_REAL_FLP!
     const before = readFileSync(source)
     const tag = (await tracksOf(source)).at(-1)!
-    const folder = mkdtempSync(join(tmpdir(), 'tbb-'))
+    const folder = tempFolder()
     const muted = join(folder, `muted ${basename(source)}`)
     const on = join(folder, `on ${basename(source)}`)
 

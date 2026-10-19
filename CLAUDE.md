@@ -23,7 +23,7 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 - `npm run dev` starts the app with hot reload (only the React app reloads; after changing `src/main` or `src/preload`, stop and restart it) · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types · `npm test` runs the Vitest tests (`*.test.ts` next to the code).
 - Vitest stays on 3.2.x: adding Vitest 4.1 crashes npm 11.2 (`Cannot read properties of null (reading 'edgesOut')`) while it resolves Vitest's optional devtools peers.
-- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files and writes the tag-switched copies; `beatFolder.ts` works out a beat's folder and file names; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio; `windows.ts` creates every window with the same lockdown; `notes.ts` the Notes window) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
+- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files and writes the tag-switched copies; `beatFolder.ts` works out a beat's folder and file names; `render.ts` renders with FL's command line; `registry.ts` reads and writes the registry with reg.exe; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio; `windows.ts` creates every window with the same lockdown; `notes.ts` the Notes window) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
 - Renderer: two pages, `index.html` (main window, `src/main.tsx`) and `notes.html` (Notes window, `src/notes/`), both listed in `electron.vite.config.ts` · `lib/` state and logic (the settings provider, toasts, the beat model, the pipeline, demo data, small hooks) · `components/` shared UI (Card, TitleBar, Rail, Mascot, Celebration, controls) · `screens/` one folder or file per screen · `styles/tokens.css` the design tokens and every animation. Components use CSS Modules (`*.module.css`); animations whose speed depends on the BPM are set as inline styles.
 - IPC routes so far: `project:read` (invoke) reads an .flp; `settings:load` / `settings:save` (invoke) read and change the settings; `fl:find` / `fl:pick` (invoke) find FL Studio or let the user point to it in Windows' file dialog; `output:pick` (invoke) opens Windows' folder dialog and answers with the folder, which the page saves; `shell:show` (send) opens Explorer at a file; `notes:open` (send) opens or focuses Notes; `window:theme` (send) recolors the sending window's caption buttons. Pushed from main to the pages: `settings:changed` (the fields another window just saved) and `notes:changed` (Notes opened or closed); the preload's `listen` passes only the data, never the IPC event. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
 - Settings live in `%APPDATA%\Type Beat Beast\settings.json` (the Notes text too), owned by the main process; every value goes through `cleanSettings`. Not localStorage: that belongs to the page's address, so the dev server (port 5173, or 5174 when 5173 is busy) and the built app each had their own copy. The first launch with the file hands over the old localStorage copy once.
@@ -41,7 +41,9 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 - `FL64.exe /R /Emp3,wav "<project>.flp"` renders without touching the FL window, then FL closes itself: about 35–50 s for a 2:17 beat, FL start-up included. Paths with spaces work when quoted. The `.flp` is left byte-for-byte unchanged.
 - Output goes next to the `.flp`, named after it: `<project>.mp3`, `<project>.wav`.
-- Quality comes from the Export window's saved settings in the registry, `HKCU\SOFTWARE\Image-Line\FL Studio 21\General\WAVRenderForm` (string values): `WFBox` 0 = 16-bit, 1 = 24-bit; `MP3BitrateSlider` 10 = 192 kbps, 13 = 320 kbps; `BatchBox` 1 = "Split mixer tracks". The user's own values are 16-bit, 192 kbps, split off. Settings also offers 32-bit float and 256 kbps; their registry values are still to check in Phase 2.
+- Quality comes from the Export window's saved settings in the registry, `HKCU\SOFTWARE\Image-Line\FL Studio 21\General\WAVRenderForm` (string values): `WFBox` 0 = 16-bit, 1 = 24-bit, 2 = 32-bit float; `MP3BitrateSlider` 10 = 192 kbps, 12 = 256 kbps, 13 = 320 kbps (all confirmed by renders, 2026-10-19); `BatchBox` 1 = "Split mixer tracks". The user's own values are 16-bit, 192 kbps, split off.
+- The render runner is `src/main/render.ts`. It refuses to start while FL is open. It backs up the user's three values to `%APPDATA%\Type Beat Beast\fl-export-backup.json`, sets the render's, runs `FL64.exe /R /Ewav` (or `/Emp3`) on a copy in its own work folder, waits for FL to close (10-minute limit), and always restores the values; app start-up restores them too if a render was cut short. Success means FL closed and the expected file exists (FL's exit code isn't used).
+- Real renders of a flowers copy (2026-10-19): the untagged split render took 42 s and gave a 24-bit 44.1 kHz WAV plus 10 stems (the muted tag isn't one); the tagged MP3 took 38 s at 320 kbps. Rerun with `TBB_REAL_RENDER=1 TBB_REAL_FLP="<copy of a beat>.flp" npx vitest run src/main/render.test.ts` (it launches FL, so ask the user first).
 - The export settings have no sample rate: FL renders at the audio device's rate, `HKCU\SOFTWARE\Image-Line\FL Studio 21\Devices\Audio output` → `Sample rate` (44100 here). That's why Settings has no sample-rate option.
 - With `BatchBox` = 1, one render writes `<project>_Master.wav` (the full mix, same loudness as a normal render, so it works as the WAV), `<project>_Current.wav` (FL's special Current track, not a real stem) and `<project>_<mixer track name>.wav` for every mixer track that isn't muted, all full length. Track names can contain symbols and Unicode (`!`, `#`, `[ ]`, `@`, `ℹ`).
 - Copies of a project rendered fine from a temp folder (samples use full paths). Watch for projects whose samples sit next to the `.flp`.
@@ -118,6 +120,8 @@ Each published beat gets a folder named after the beat (as shown in the beat det
 
 `src/main/beatFolder.ts` works out these paths (beat names are made safe for Windows). A status file in the folder will let a failed step be retried without redoing the ones before it.
 
+Only when everything has published successfully does the app move the original `.flp` and the cover image into the folder (user, 2026-10-19). The YouTube video is a temporary file: it's deleted once its upload has succeeded.
+
 ## The flow for one beat
 
 1. Pick the `.flp` and the cover image. The app reads beat name, BPM, key and collaborators from the file name (see Naming system) and picks the tag track (see Tag detection); the user can edit the details before continuing. The project can be saved with the tag on or off; it doesn't matter.
@@ -126,7 +130,7 @@ Each published beat gets a folder named after the beat (as shown in the beat det
 4. **Auto:** pack the stems into a RAR, leaving out Master and Current.
 5. **Auto:** fill in the whole BeatStars upload in Chrome, including collaborators. **Manual:** the user reviews and confirms, then it publishes.
 6. **Auto:** make the YouTube video (cover + tagged audio, with an MP3 audio track), upload it with the title, description and tags, and schedule it for the next free day at the daily publish time.
-7. **Auto:** move the original `.flp` into the beat folder.
+7. **Auto, only if everything published:** move the original `.flp` and the cover image into the beat folder.
 
 ## Phase 0 — Tests (done 2026-10-13)
 
@@ -142,10 +146,11 @@ Every screen from the design works: New beat (drop the .flp and cover, beat deta
 - [ ] Beat folder: create it at the start; at the very end, move the `.flp` into it (check the moved `.flp` still finds its samples)
 - [x] Project copies with the tag track muted or on (`copyProject` in `src/main/project.ts`): only the tag's on/off bit changes, and it never writes over an existing file. Tested on a synthetic .flp and on a copy of flowers (tag = track 11).
 - [x] Tag picker in the beat details (More card): remembered names first, else the last track as a guess, plus "No tag"; running remembers the pick
-- [ ] Render runner: make sure FL is closed, set the registry values, run the command line, wait for FL to exit, restore the user's values
-- [ ] Untagged WAV + stems in one split render from the muted copy (a normal WAV render when stems are off)
-- [ ] Tagged MP3 render from the unmuted copy
+- [x] Render runner (`src/main/render.ts`): refuses while FL is open, sets the registry values with a crash-safe backup, runs the command line, waits for FL to close, restores the user's values
+- [x] Untagged WAV + stems in one split render from the muted copy (a normal WAV render when stems are off): `renderUntagged`
+- [x] Tagged MP3 render from the copy with the tag on: `renderTagged`
 - [ ] Pack the stems with WinRAR, without Master and Current
+- [ ] Wire the real steps into the app: create the beat folder, render, move the WAV and MP3 in, pack the stems; the pipeline's first steps stop being a demo
 
 ## Phase 3 — BeatStars
 
@@ -187,8 +192,7 @@ Every screen from the design works: New beat (drop the .flp and cover, beat deta
 
 ## Open questions (answer when that phase starts)
 
-- [ ] Phase 2: the cover image. Copy it into the beat folder, move it there, or leave it alone? (One cover may be used for several beats.)
-- [ ] Phase 4: keep the YouTube video (.mp4) in the beat folder after the upload, or delete it?
+- [ ] Phase 2: stem names inside the RAR. FL's split render names them `<project>_<mixer track name>.wav` (like `flowers - 140 Em_venexxi - ! spinz 808.wav`); the user's own `flowers.rar` has `flowers - 140 Em - Track 1.wav` … `Track 10.wav`.
 - [ ] Phase 3–4: BeatStars and YouTube title formats
 - [ ] Phase 3: BeatStars defaults (genre, moods, tags, licenses, free download settings)
 - [ ] Phase 4: YouTube description template, tags, category, playlist; daily publish time and timezone

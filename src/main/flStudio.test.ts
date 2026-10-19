@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { exeVersion, registryValue } from './flStudio'
+import { exeVersion } from './flStudio'
 
 // A fake .exe tail: the VS_VERSION_INFO marker, padding, then the fixed version block for 21.0.3.3517.
 function fakeExe(): Buffer {
@@ -18,24 +18,5 @@ describe('exeVersion', () => {
 
   it('gives null when there is no version block', () => {
     expect(exeVersion(Buffer.alloc(256))).toBeNull()
-  })
-})
-
-describe('registryValue', () => {
-  const output = [
-    '',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Image-Line\\Shared\\Paths',
-    '    FL Studio    REG_SZ    F:\\Program Files\\Fl Studio 21\\FL64.exe',
-    '    FL Studio engine    REG_SZ    F:\\Program Files\\Fl Studio 21\\FLEngine_x64.dll',
-    '',
-  ].join('\r\n')
-
-  it('finds the exact value name', () => {
-    expect(registryValue(output, 'FL Studio')).toBe('F:\\Program Files\\Fl Studio 21\\FL64.exe')
-    expect(registryValue(output, 'FL Studio engine')).toBe('F:\\Program Files\\Fl Studio 21\\FLEngine_x64.dll')
-  })
-
-  it("gives null for a value that isn't there", () => {
-    expect(registryValue(output, 'VST plugins')).toBeNull()
   })
 })

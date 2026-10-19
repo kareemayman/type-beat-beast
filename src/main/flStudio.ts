@@ -1,12 +1,9 @@
 import { dialog, type BrowserWindow, type OpenDialogOptions } from 'electron'
-import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
-import { promisify } from 'node:util'
+import { basename, dirname } from 'node:path'
 import type { FlStudioStatus } from '../shared/api'
+import { readRegistry } from './registry'
 import { loadSettings, saveSettings } from './settings'
-
-const execFileAsync = promisify(execFile)
 
 // The version Windows shows under Properties → Details, read from the .exe's own bytes: the fixed part of
 // its VS_VERSION_INFO block starts with the signature 0xFEEF04BD, followed by the version numbers.
@@ -17,25 +14,6 @@ export function exeVersion(bytes: Buffer): string | null {
   const high = bytes.readUInt32LE(fixed + 8) // major, minor
   const low = bytes.readUInt32LE(fixed + 12) // patch, build
   return `${high >>> 16}.${high & 0xffff}.${low >>> 16}`
-}
-
-// Picks one value out of `reg query` output, where each value is a line like "    FL Studio    REG_SZ    F:\...".
-export function registryValue(output: string, name: string): string | null {
-  for (const line of output.split(/\r?\n/)) {
-    const match = /^\s+(.+?)\s+REG_\w+\s+(.*)$/.exec(line)
-    if (match?.[1] === name) return match[2].trim()
-  }
-  return null
-}
-
-// Reads a registry value with Windows' own reg.exe. Null when the key or value doesn't exist (reg fails then).
-async function readRegistry(key: string, name: string): Promise<string | null> {
-  try {
-    const { stdout } = await execFileAsync(join(process.env['SystemRoot'] ?? 'C:\\Windows', 'System32', 'reg.exe'), ['query', key, '/v', name])
-    return registryValue(stdout, name)
-  } catch {
-    return null
-  }
 }
 
 // Is this FL Studio's 64-bit program? Answers with its version when it is.

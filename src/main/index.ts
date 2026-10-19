@@ -1,13 +1,17 @@
 // Main process: the app's "server". It runs Node.js, owns the windows, and has full access to the PC.
 import { app, BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } from 'electron'
 import { existsSync } from 'node:fs'
-import { isAbsolute } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { savedPart } from '../shared/settings'
 import { findFlStudio, pickFlStudio } from './flStudio'
 import { closeNotes, openNotes } from './notes'
 import { readProject } from './project'
+import { restoreExportChoices } from './render'
 import { loadSettings, saveSettings } from './settings'
 import { CAPTION_BUTTONS, createWindow } from './windows'
+
+// While FL renders, the user's own Export choices wait in this file (see render.ts).
+const exportBackupFile = () => join(app.getPath('userData'), 'fl-export-backup.json')
 
 function createMainWindow(): void {
   const window = createWindow('index.html', { width: 1280, height: 800, minWidth: 1100, minHeight: 700, title: 'Type Beat Beast' })
@@ -70,6 +74,8 @@ ipcMain.on('window:theme', (event, theme: unknown) => {
 })
 
 app.whenReady().then(() => {
+  // If the app closed in the middle of a render, FL still has the render's Export choices: put the user's back.
+  restoreExportChoices(exportBackupFile()).catch((error) => console.error("Couldn't restore FL's Export choices:", error))
   createMainWindow()
 
   // macOS habit: clicking the dock icon with no windows open creates one.
