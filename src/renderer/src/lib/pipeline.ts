@@ -1,8 +1,9 @@
-import { useEffect, useReducer } from 'react'
+import { useEffect, useReducer, useRef } from 'react'
 import { AudioWaveform, CalendarClock, Clapperboard, Music2, Package, Sparkles, Store, type LucideIcon } from 'lucide-react'
+import type { RealStep, RunRequest, StepResult } from '../../../shared/api'
 
-// Every step is still a demo with made-up timings; nothing is rendered or uploaded yet.
-// Phases 2–4 swap the steps for real work one by one (see CLAUDE.md).
+// The renders, the stems and tidying up are real: the main process does them (src/main/run.ts). BeatStars and
+// YouTube are still simulated with made-up timings until Phases 3 and 4; DEMO marks the places that say so.
 export const DEMO = true
 
 export type StepId = 'wav' | 'mp3' | 'rar' | 'bs' | 'ytv' | 'yts' | 'tidy'
@@ -11,9 +12,11 @@ export type Phase = 'idle' | 'running' | 'needs' | 'failed' | 'done'
 
 export interface StepState {
   status: StepStatus
-  progress: number // 0–100
+  progress: number // 0–100; for a real step, an estimate until it finishes
   seconds: number // time spent so far
   startedAt: number | null
+  log?: string[] // what a real step did, from the main process
+  error?: string // why a real step failed
 }
 
 export interface LogContext {
@@ -28,64 +31,40 @@ export interface StepDef {
   id: StepId
   short: string
   icon: LucideIcon
+  real: boolean // done by the main process; otherwise simulated here
   running(ctx: LogContext): string // headline while it runs
   needs?: string // headline while it waits for the user
-  failed?: string // headline when it fails
-  demoSeconds: number // how long the step "takes" in the demo
-  demoTicks: number // how many 250 ms ticks the demo spends on it
-  log(ctx: LogContext): string[]
+  failed?: string // headline when a simulated step fails
+  seconds: number // about how long it takes, for the progress estimate and the time left
+  demoTicks?: number // simulated steps: how many 250 ms ticks they take
+  log?(ctx: LogContext): string[] // simulated steps: made-up log lines
 }
 
-const listStems = (stems: string[]) =>
-  stems.length > 3 ? `${stems.slice(0, 3).join(', ')} + ${stems.length - 3} more` : stems.join(', ') || 'none'
-
 export const STEPS: StepDef[] = [
+  { id: 'wav', short: 'WAV + stems', icon: AudioWaveform, real: true, seconds: 45, running: () => 'Cooking the stems…' },
   {
-    id: 'wav', short: 'WAV + stems', icon: AudioWaveform, demoSeconds: 108, demoTicks: 32,
-    running: () => 'Cooking the stems…',
-    log: (c) => [
-      c.tagTrack ? `Muted the tag on ${c.tagTrack}` : 'No tag track to mute',
-      `Rendering ${c.base}.wav`,
-      `Stems: ${listStems(c.stems)}`,
-      `Done. ${c.stems.length} stems, ${c.quality.wav}`,
-    ],
-  },
-  {
-    id: 'mp3', short: 'Tagged MP3', icon: Music2, demoSeconds: 66, demoTicks: 24,
+    id: 'mp3', short: 'Tagged MP3', icon: Music2, real: true, seconds: 40,
     running: (c) => (c.tagTrack ? `Bouncing the 808s… tag on ${c.tagTrack}` : 'Bouncing the 808s…'),
-    log: (c) => [
-      c.tagTrack ? `Unmuted the tag on ${c.tagTrack}` : 'No tag track, so this MP3 has no tag',
-      `Rendering ${c.base} (tagged).mp3`,
-      `${c.quality.mp3}, tag on`,
-    ],
   },
+  { id: 'rar', short: 'Pack stems', icon: Package, real: true, seconds: 15, running: () => 'Wrapping the stems for delivery' },
   {
-    id: 'rar', short: 'Pack stems', icon: Package, demoSeconds: 21, demoTicks: 12,
-    running: () => 'Wrapping the stems for delivery',
-    log: (c) => [`Packing ${c.stems.length} stems into ${c.name} stems.rar`, 'Packed'],
-  },
-  {
-    id: 'bs', short: 'BeatStars', icon: Store, demoSeconds: 34, demoTicks: 16,
+    id: 'bs', short: 'BeatStars', icon: Store, real: false, seconds: 34, demoTicks: 16,
     running: () => 'Filling in BeatStars…',
     needs: 'Your turn: check BeatStars before it goes live',
     log: (c) => ['Opened BeatStars', `Filled in ${c.name}, BPM and key`, 'Attached the files, free download on', 'Waiting for your OK'],
   },
   {
-    id: 'ytv', short: 'YouTube video', icon: Clapperboard, demoSeconds: 71, demoTicks: 20,
+    id: 'ytv', short: 'YouTube video', icon: Clapperboard, real: false, seconds: 71, demoTicks: 20,
     running: () => 'Pressing the video…',
     failed: "Couldn't read the cover. Use a JPG or PNG, then retry.",
     log: () => ['Cover + tagged MP3 going in', 'Video done, 1080p'],
   },
   {
-    id: 'yts', short: 'Schedule', icon: CalendarClock, demoSeconds: 6, demoTicks: 8,
+    id: 'yts', short: 'Schedule', icon: CalendarClock, real: false, seconds: 6, demoTicks: 8,
     running: () => 'Finding a slot…',
     log: () => ['Found the next free slot', 'Uploaded and scheduled'],
   },
-  {
-    id: 'tidy', short: 'Tidy up', icon: Sparkles, demoSeconds: 4, demoTicks: 6,
-    running: () => 'Sweeping up…',
-    log: (c) => ['Cleared temp files', `Moved the project into the ${c.name} folder`],
-  },
+  { id: 'tidy', short: 'Tidy up', icon: Sparkles, real: true, seconds: 1, running: () => 'Sweeping up…' },
 ]
 
 const queued = (): StepState => ({ status: 'queued', progress: 0, seconds: 0, startedAt: null })
@@ -108,7 +87,10 @@ export function currentStep(steps: StepState[]): number {
   return phaseOf(steps) === 'done' ? steps.length - 1 : 0
 }
 
-type Action = { type: 'run' | 'tick' | 'approve' | 'retry' | 'reset'; now: number; stems: boolean }
+type Action =
+  | { type: 'run' | 'tick' | 'approve' | 'retry' | 'reset'; now: number; stems: boolean }
+  | { type: 'finish'; index: number; log: string[]; now: number; stems: boolean }
+  | { type: 'fail'; index: number; error: string }
 
 // "Pack stems" shows as skipped ahead of time when stems are off.
 export function displayStatus(step: StepState, i: number, stems: boolean): StepStatus {
@@ -122,39 +104,59 @@ function startAfter(steps: StepState[], i: number, now: number, stems: boolean):
   if (j < steps.length) steps[j] = running(now)
 }
 
-function reducer(steps: StepState[], { type, now, stems }: Action): StepState[] {
+function reducer(steps: StepState[], action: Action): StepState[] {
   const next = steps.slice()
-  if (type === 'reset') return STEPS.map(queued)
-  if (type === 'run') return STEPS.map((_, i) => (i === 0 ? running(now) : queued()))
+  if (action.type === 'reset') return STEPS.map(queued)
+  if (action.type === 'run') return STEPS.map((_, i) => (i === 0 ? running(action.now) : queued()))
 
-  if (type === 'tick') {
+  // A real step's answer from the main process. One for a step that isn't running any more (stopped) is dropped.
+  if (action.type === 'finish' || action.type === 'fail') {
+    const step = steps[action.index]
+    if (step.status !== 'running') return steps
+    if (action.type === 'fail') {
+      next[action.index] = { ...step, status: 'failed', error: action.error }
+      return next
+    }
+    next[action.index] = { ...step, status: 'done', progress: 100, seconds: (action.now - (step.startedAt ?? action.now)) / 1000, log: action.log }
+    startAfter(next, action.index, action.now, action.stems)
+    return next
+  }
+
+  if (action.type === 'tick') {
     const i = steps.findIndex((s) => s.status === 'running')
     if (i < 0) return steps
     const def = STEPS[i]
-    const step = { ...steps[i], progress: Math.min(100, steps[i].progress + 100 / def.demoTicks), seconds: steps[i].seconds + def.demoSeconds / def.demoTicks }
+    // A real step only reports when it ends; meanwhile its bar creeps toward 95% at the expected pace.
+    if (def.real) {
+      const seconds = (action.now - (steps[i].startedAt ?? action.now)) / 1000
+      next[i] = { ...steps[i], seconds, progress: Math.min(95, (seconds / def.seconds) * 100) }
+      return next
+    }
+    const ticks = def.demoTicks ?? 1
+    const step = { ...steps[i], progress: Math.min(100, steps[i].progress + 100 / ticks), seconds: steps[i].seconds + def.seconds / ticks }
     next[i] = step
     if (step.progress < 100) return next
     // BeatStars waits for the user's OK before anything goes public.
     if (def.id === 'bs') next[i] = { ...step, status: 'needs' }
     else {
       next[i] = { ...step, status: 'done' }
-      startAfter(next, i, now, stems)
+      startAfter(next, i, action.now, action.stems)
     }
     return next
   }
 
-  if (type === 'approve') {
+  if (action.type === 'approve') {
     const i = steps.findIndex((s) => s.status === 'needs')
     if (i < 0) return steps
     next[i] = { ...steps[i], status: 'done' }
-    startAfter(next, i, now, stems)
+    startAfter(next, i, action.now, action.stems)
     return next
   }
 
   // retry
   const i = steps.findIndex((s) => s.status === 'failed')
   if (i < 0) return steps
-  next[i] = running(now)
+  next[i] = running(action.now)
   return next
 }
 
@@ -162,7 +164,7 @@ export interface Pipeline {
   steps: StepState[]
   phase: Phase
   current: number
-  run(): void
+  run(request: RunRequest): void
   approve(): void
   retry(): void
   reset(): void
@@ -171,31 +173,73 @@ export interface Pipeline {
 export function usePipeline({ stems, paused }: { stems: boolean; paused: boolean }): Pipeline {
   const [steps, dispatch] = useReducer(reducer, undefined, () => STEPS.map(queued))
   const phase = phaseOf(steps)
+  const request = useRef<RunRequest | null>(null) // what the current run is for
+  const runId = useRef<string | null>(null) // the main process's run, once it has started
+  const generation = useRef(0) // goes up with each Run and Stop, so answers meant for an earlier run are dropped
+  const handedOver = useRef('') // the last step start sent to the main process (React may run an effect twice)
 
-  // The demo moves the running step forward four times a second, and stops while the window is hidden.
+  // Four times a second: progress for the running step, real or simulated. It pauses while the window is
+  // hidden; a real step keeps going in the main process and its time catches up.
   useEffect(() => {
     if (phase !== 'running' || paused) return
     const timer = setInterval(() => dispatch({ type: 'tick', now: Date.now(), stems }), 250)
     return () => clearInterval(timer)
   }, [phase, paused, stems])
 
+  // When a real step starts, the main process does it, starting the run first if needed. Its answer finishes or
+  // fails the step.
+  const index = steps.findIndex((s) => s.status === 'running')
+  const startKey = index >= 0 && STEPS[index].real ? `${index}@${steps[index].startedAt}` : ''
+  useEffect(() => {
+    if (!startKey || handedOver.current === startKey || !request.current) return
+    handedOver.current = startKey
+    const runRequest = request.current
+    const asOf = generation.current
+    void (async () => {
+      if (!runId.current) {
+        const started = await window.api.startRun(runRequest)
+        if (asOf !== generation.current) return started.ok && window.api.stopRun(started.id)
+        if (!started.ok) return dispatch({ type: 'fail', index, error: started.error })
+        runId.current = started.id
+      }
+      const result: StepResult = await window.api.runStep(runId.current, STEPS[index].id as RealStep)
+      if (asOf !== generation.current) return
+      if (result.ok && STEPS[index].id === 'tidy') runId.current = null // the run is over in the main process
+      dispatch(result.ok ? { type: 'finish', index, log: result.log, now: Date.now(), stems: runRequest.stems } : { type: 'fail', index, error: result.error })
+    })()
+  }, [startKey, index])
+
+  // Drops the current run: the main process stops it (closing FL if it's rendering) and clears its temp files.
+  function stop() {
+    generation.current++
+    if (runId.current) window.api.stopRun(runId.current)
+    runId.current = null
+  }
+
   return {
     steps,
     phase,
     current: currentStep(steps),
-    run: () => dispatch({ type: 'run', now: Date.now(), stems }),
+    run: (runRequest) => {
+      stop()
+      request.current = runRequest
+      dispatch({ type: 'run', now: Date.now(), stems })
+    },
     approve: () => dispatch({ type: 'approve', now: Date.now(), stems }),
     retry: () => dispatch({ type: 'retry', now: Date.now(), stems }),
-    reset: () => dispatch({ type: 'reset', now: Date.now(), stems }),
+    reset: () => {
+      stop()
+      dispatch({ type: 'reset', now: Date.now(), stems })
+    },
   }
 }
 
 // Fraction of the whole run that's done, weighted by how long each step takes.
 export function overallProgress(steps: StepState[]): number {
-  const total = STEPS.reduce((sum, def) => sum + def.demoSeconds, 0)
+  const total = STEPS.reduce((sum, def) => sum + def.seconds, 0)
   const done = steps.reduce((sum, step, i) => {
-    if (step.status === 'done' || step.status === 'skipped' || step.status === 'needs') return sum + STEPS[i].demoSeconds
-    if (step.status === 'running') return sum + (STEPS[i].demoSeconds * step.progress) / 100
+    if (step.status === 'done' || step.status === 'skipped' || step.status === 'needs') return sum + STEPS[i].seconds
+    if (step.status === 'running') return sum + (STEPS[i].seconds * step.progress) / 100
     return sum
   }, 0)
   return done / total
@@ -204,8 +248,8 @@ export function overallProgress(steps: StepState[]): number {
 // Rough time left, from each step's expected length.
 export function secondsLeft(steps: StepState[]): number {
   return steps.reduce((sum, step, i) => {
-    if (step.status === 'queued' || step.status === 'failed') return sum + STEPS[i].demoSeconds
-    if (step.status === 'running') return sum + (1 - step.progress / 100) * STEPS[i].demoSeconds
+    if (step.status === 'queued' || step.status === 'failed') return sum + STEPS[i].seconds
+    if (step.status === 'running') return sum + (1 - step.progress / 100) * STEPS[i].seconds
     return sum
   }, 0)
 }

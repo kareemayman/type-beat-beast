@@ -21,10 +21,12 @@ export default function Review({ beat, freeDownload, onPublish, onOpenBrowser, o
     ['Key', longKey(beat.key)],
     ...(beat.collabs.length ? beat.collabs.map((name): [string, string] => ['Collab', name]) : [['Collab', 'Solo beat'] as [string, string]]),
   ]
+  // The files from the beat folder (see CLAUDE.md, "Beat folder").
+  const project = beat.fileName.replace(/\.flp$/i, '') || beat.name
   const files: { icon: LucideIcon; color: string; name: string }[] = [
-    ...(beat.bsFile === 'mp3' ? [{ icon: FileAudio, color: '#FF6500', name: `${beat.name} (tagged).mp3` }] : []),
-    { icon: FileAudio, color: '#38BDF8', name: `${beat.name}.wav` },
-    ...(beat.stems ? [{ icon: FileArchive, color: '#A78BFA', name: `${beat.name} stems.rar` }] : []),
+    ...(beat.bsFile === 'mp3' ? [{ icon: FileAudio, color: '#FF6500', name: `${project} TAGGED.mp3` }] : []),
+    { icon: FileAudio, color: '#38BDF8', name: `${project}.wav` },
+    ...(beat.stems ? [{ icon: FileArchive, color: '#A78BFA', name: `${beat.name}.rar` }] : []),
   ]
 
   return (
@@ -32,7 +34,7 @@ export default function Review({ beat, freeDownload, onPublish, onOpenBrowser, o
       <div className={styles.details}>
         <div className={styles.title}>Check BeatStars before it goes live</div>
         <div className={styles.subtitle}>
-          {DEMO ? 'Demo run: nothing was filled in or uploaded yet.' : "It's filled in and saved as a draft. Nothing is public yet."}
+          {DEMO ? "Demo: BeatStars isn't filled in yet. The files below are real, in the beat folder." : "It's filled in and saved as a draft. Nothing is public yet."}
         </div>
         <div className={styles.rows}>
           {rows.map(([label, value], i) => (

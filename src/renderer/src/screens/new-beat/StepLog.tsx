@@ -1,5 +1,5 @@
 import Card from '../../components/Card'
-import { STEPS, displayStatus, type LogContext, type StepState } from '../../lib/pipeline'
+import { STEPS, displayStatus, mmss, type LogContext, type StepState } from '../../lib/pipeline'
 import styles from './StepLog.module.css'
 
 interface Line {
@@ -23,8 +23,13 @@ export default function StepLog({ steps, index, ctx, stems }: { steps: StepState
     lines = [{ text: "Hasn't started yet.", time: '', dot: 'var(--card2)', color: 'var(--text2)' }]
   } else if (status === 'skipped') {
     lines = [{ text: 'Skipped. Upload stems is off.', time: '', dot: 'var(--card2)', color: 'var(--text2)' }]
+  } else if (def.real) {
+    // A real step: what the main process did, the time so far while it runs, or why it failed.
+    lines = (step.log ?? []).map((text) => ({ text, time, dot: '#22C55E', color: 'var(--text)' }))
+    if (status === 'running') lines.push({ text: `${def.running(ctx)} ${mmss(step.seconds)}`, time: 'now', dot: '#FF6500', color: 'var(--t-run)' })
+    if (status === 'failed') lines.push({ text: step.error ?? 'Something went wrong.', time, dot: '#FF4D6D', color: 'var(--t-fail)' })
   } else {
-    const all = def.log(ctx)
+    const all = def.log?.(ctx) ?? []
     const shown = status === 'running' ? Math.max(1, Math.ceil((step.progress / 100) * all.length)) : status === 'failed' ? 1 : all.length
     lines = all.slice(0, shown).map((text) => ({ text, time, dot: '#22C55E', color: 'var(--text)' }))
     if (status === 'running') lines.push({ text: `${def.running(ctx)} ${Math.floor(step.progress)}%`, time: 'now', dot: '#FF6500', color: 'var(--t-run)' })

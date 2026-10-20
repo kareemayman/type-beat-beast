@@ -81,8 +81,8 @@ export default function App() {
     }
     setMascot((previous) => pickMascot(previous))
     setScreen('new')
-    pipeline.run()
-    if (DEMO) toast('info', 'Demo run: nothing gets rendered or uploaded yet.')
+    pipeline.run({ project: beat.path, beatName: beat.name, tagIndex: beat.tagIndex, stems: beat.stems })
+    if (DEMO) toast('info', 'Rendering for real. BeatStars and YouTube are still a demo.')
   }
 
   // "Cook another": clear the finished beat and its cover, ready for the next project.

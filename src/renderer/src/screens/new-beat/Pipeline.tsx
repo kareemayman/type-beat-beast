@@ -64,15 +64,15 @@ export default function Pipeline(props: PipelineProps) {
   const headline =
     phase === 'running' ? STEPS[current].running(ctx)
     : phase === 'needs' ? STEPS[current].needs
-    : phase === 'failed' ? STEPS[current].failed
-    : phase === 'done' ? `Every step done. Scheduled for tomorrow ${publishTime}.`
+    : phase === 'failed' ? (steps[current].error ?? STEPS[current].failed)
+    : phase === 'done' ? (DEMO ? 'Done. The renders are in the beat folder; the uploads were a demo.' : `Every step done. Scheduled for tomorrow ${publishTime}.`)
     : name ? 'Ready when you are. Hit Run.'
     : 'Drop a project and hit Run.'
   const count = phase === 'done' ? STEPS.length : phase === 'idle' ? 0 : current + 1
   const bubble = { needs: 'your turn!', done: 'cooked!', failed: 'uh oh…', idle: `${MASCOT_NAMES[mascot]} is ready`, running: `${MASCOT_NAMES[mascot]} is cooking` }[phase]
 
   return (
-    <Card className={styles.card} aria-label="Pipeline" sticker={DEMO ? 'Demo run' : undefined} stickerColor="var(--violet)" stickerTilt="var(--tilt-2)">
+    <Card className={styles.card} aria-label="Pipeline" sticker={DEMO ? 'Uploads are a demo' : undefined} stickerColor="var(--violet)" stickerTilt="var(--tilt-2)">
       <div className={styles.head}>
         <div className={styles.titles}>
           <h1 className={styles.name}>{name || 'No beat yet'}</h1>
