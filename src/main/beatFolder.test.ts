@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { beatFiles, safeName } from './beatFolder'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterAll, describe, expect, it } from 'vitest'
+import { beatFiles, createBeatFolder, safeName } from './beatFolder'
 
 describe('beatFiles', () => {
   it('puts a solo beat in a folder named after it, next to the .flp', () => {
@@ -26,6 +29,43 @@ describe('beatFiles', () => {
 
   it('falls back to the project name when the beat name is empty', () => {
     expect(beatFiles('F:\\Projects\\untitled 3.flp', '  ', '').folder).toBe('F:\\Projects\\untitled 3')
+  })
+})
+
+describe('createBeatFolder', () => {
+  const folders: string[] = []
+  afterAll(() => folders.forEach((folder) => rmSync(folder, { recursive: true, force: true })))
+  // A month folder in temp holding the project.
+  function month(): { dir: string; project: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'tbb-'))
+    folders.push(dir)
+    const project = join(dir, 'flowers - 140 Em.flp')
+    writeFileSync(project, 'flp')
+    return { dir, project }
+  }
+
+  it('makes the folder when it is not there yet', async () => {
+    const { dir, project } = month()
+    const files = await createBeatFolder(beatFiles(project, 'flowers', ''), project)
+    expect(files.folder).toBe(join(dir, 'flowers'))
+    expect(existsSync(files.folder)).toBe(true)
+  })
+
+  it('uses the folder again when it already holds this beat (a re-run)', async () => {
+    const { dir, project } = month()
+    mkdirSync(join(dir, 'flowers'))
+    writeFileSync(join(dir, 'flowers', 'flowers - 140 Em.wav'), 'wav')
+    expect((await createBeatFolder(beatFiles(project, 'flowers', ''), project)).folder).toBe(join(dir, 'flowers'))
+  })
+
+  it('leaves a folder holding a different beat alone and picks "<name> (2)"', async () => {
+    const { dir, project } = month()
+    mkdirSync(join(dir, 'flowers'))
+    writeFileSync(join(dir, 'flowers', 'flowers - 150 Gm.wav'), 'another beat')
+    const files = await createBeatFolder(beatFiles(project, 'flowers', ''), project)
+    expect(files.folder).toBe(join(dir, 'flowers (2)'))
+    expect(files.stems).toBe(join(dir, 'flowers (2)', 'flowers.rar'))
+    expect(files.wav).toBe(join(dir, 'flowers (2)', 'flowers - 140 Em.wav'))
   })
 })
 

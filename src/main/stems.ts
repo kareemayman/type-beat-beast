@@ -55,13 +55,13 @@ export async function findPacker(): Promise<Packer> {
 
 // Renames the stems to their archive names (they're the app's own temporary files) and packs them, without folder
 // paths inside, into `archive` with the packer's extension (.rar or .zip). An archive already at that spot is
-// replaced, never added to. Answers with the archive's path.
-export async function packStems(packer: Packer, stems: Stem[], archive: string): Promise<string> {
+// replaced, never added to. Answers with the archive's path. A stem that's already renamed (a retry) stays as it is.
+export async function packStems(packer: Packer, stems: Stem[], archive: string, signal?: AbortSignal): Promise<string> {
   if (!stems.length) throw new Error('There are no stems to pack.')
   const files: string[] = []
   for (const stem of stems) {
     const renamed = join(dirname(stem.file), stem.as)
-    if (renamed !== stem.file) await rename(stem.file, renamed)
+    if (renamed !== stem.file && (await exists(stem.file))) await rename(stem.file, renamed)
     files.push(renamed)
   }
   const target = `${archive.replace(/\.(rar|zip)$/i, '')}.${packer.kind}`
@@ -70,12 +70,12 @@ export async function packStems(packer: Packer, stems: Stem[], archive: string):
   try {
     if (packer.kind === 'rar') {
       // a = add to a new archive, -ep = no paths inside, -idq = only errors, -y = yes to any question.
-      await execFileAsync(packer.exe, ['a', '-ep', '-idq', '-y', target, ...files])
+      await execFileAsync(packer.exe, ['a', '-ep', '-idq', '-y', target, ...files], { signal })
     } else {
       // The paths reach PowerShell as environment variables, never as part of the command, so no file name can
       // turn into code.
       const script = "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; Compress-Archive -LiteralPath ($env:TBB_FILES | ConvertFrom-Json) -DestinationPath $env:TBB_ZIP -CompressionLevel Optimal"
-      await execFileAsync(POWERSHELL, ['-NoProfile', '-NonInteractive', '-Command', script], { env: { ...process.env, TBB_FILES: JSON.stringify(files), TBB_ZIP: target } })
+      await execFileAsync(POWERSHELL, ['-NoProfile', '-NonInteractive', '-Command', script], { signal, env: { ...process.env, TBB_FILES: JSON.stringify(files), TBB_ZIP: target } })
     }
   } catch (error) {
     const { stderr, message } = error as { stderr?: string; message: string }

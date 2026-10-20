@@ -7,6 +7,7 @@ import { findFlStudio, pickFlStudio } from './flStudio'
 import { closeNotes, openNotes } from './notes'
 import { readProject } from './project'
 import { restoreExportChoices } from './render'
+import { cleanRunRequest, isRealStep, runStep, startRun, stopRun } from './run'
 import { loadSettings, saveSettings } from './settings'
 import { CAPTION_BUTTONS, createWindow } from './windows'
 
@@ -54,6 +55,18 @@ ipcMain.handle('output:pick', async (event) => {
   }
   const { canceled, filePaths } = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options)
   return canceled ? null : (filePaths[0] ?? null)
+})
+
+// A beat's run: the page starts it, then asks for one real step at a time (renders, stems, tidy), or stops it.
+ipcMain.handle('run:start', (_event, request: unknown) => {
+  const clean = cleanRunRequest(request)
+  return clean ? startRun(clean, exportBackupFile()) : { ok: false, error: "That isn't a beat the app can run." }
+})
+ipcMain.handle('run:step', (_event, id: unknown, step: unknown) =>
+  typeof id === 'string' && isRealStep(step) ? runStep(id, step) : { ok: false, error: 'Unknown step.' },
+)
+ipcMain.on('run:stop', (_event, id: unknown) => {
+  if (typeof id === 'string') void stopRun(id)
 })
 
 // "Open folder": Explorer opens with the file selected. Only full paths to things that exist get through.

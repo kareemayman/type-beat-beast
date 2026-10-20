@@ -25,6 +25,7 @@ export interface RenderJob {
   quality: Pick<Settings, 'wavBits' | 'mp3Rate'>
   work: string // a folder of the app's own for the project copies and what FL writes
   backupFile: string // where the user's own Export choices wait during a render
+  signal?: AbortSignal // stops the render: FL gets closed, and the user's Export choices still go back
 }
 
 // The untagged render: a copy with the tag muted, to WAV. With stems on, FL splits the mixer: its Master track
@@ -70,17 +71,18 @@ async function prepareCopy(job: RenderJob, kind: 'untagged' | 'tagged', tagOn: b
 }
 
 async function render(job: RenderJob, copy: string, format: 'wav' | 'mp3', split: boolean): Promise<void> {
+  job.signal?.throwIfAborted()
   if (await isFlRunning()) throw new Error('FL Studio is open. Save your work, close FL, then retry.')
   const choices = { WFBox: WAV_BITS[job.quality.wavBits], MP3BitrateSlider: MP3_RATES[job.quality.mp3Rate], BatchBox: split ? '1' : '0' }
-  await withExportChoices(exportKey(job.flVersion), choices, job.backupFile, () => runFl(job.flPath, copy, format))
+  await withExportChoices(exportKey(job.flVersion), choices, job.backupFile, () => runFl(job.flPath, copy, format, job.signal))
 }
 
 // One render with FL's command line: /R renders and then closes FL, /E picks the format, and FL writes next to
 // the project. Resolves once FL has closed. If FL is still open after the timeout (usually it's waiting on a
-// dialog, like a missing plugin), it gets closed and the render fails.
-function runFl(flPath: string, project: string, format: 'wav' | 'mp3'): Promise<void> {
+// dialog, like a missing plugin), it gets closed and the render fails. The signal closes FL right away.
+function runFl(flPath: string, project: string, format: 'wav' | 'mp3', signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    const fl = spawn(flPath, ['/R', `/E${format}`, project], { stdio: 'ignore' })
+    const fl = spawn(flPath, ['/R', `/E${format}`, project], { stdio: 'ignore', signal })
     const timer = setTimeout(() => {
       fl.kill()
       reject(new Error(`FL Studio didn't finish the ${format.toUpperCase()} render in ${RENDER_TIMEOUT / 60_000} minutes. Check FL for a message (a missing plugin or sample?), then retry.`))

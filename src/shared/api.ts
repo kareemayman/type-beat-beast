@@ -6,6 +6,20 @@ export type Theme = 'dark' | 'light'
 // FL Studio as the app sees it: where FL64.exe is and its version, or why it can't be used.
 export type FlStudioStatus = { ok: true; path: string; version: string | null } | { ok: false; error: string }
 
+// One beat's run, as the page asks for it (see src/main/run.ts).
+export interface RunRequest {
+  project: string // the .flp
+  beatName: string
+  tagIndex: number | null // the tag's mixer track, or null for no tag
+  stems: boolean
+}
+
+// The steps the main process really does so far; BeatStars and YouTube are still simulated in the page.
+export type RealStep = 'wav' | 'mp3' | 'rar' | 'tidy'
+
+export type RunStart = { ok: true; id: string } | { ok: false; error: string }
+export type StepResult = { ok: true; log: string[] } | { ok: false; error: string }
+
 // The contract between the React app and the preload: everything React is allowed to use is listed here.
 export interface Api {
   // Full path of a file the user dropped or picked. The page only sees file names; the main process needs paths.
@@ -33,4 +47,10 @@ export interface Api {
   openNotes(): void
   // Whether the Notes window is open, each time that changes. Returns a function that stops listening.
   onNotesChanged(listener: (open: boolean) => void): () => void
+  // Starts a beat's run in the main process (finds FL, reads the project). Answers with the run's id, or why not.
+  startRun(request: RunRequest): Promise<RunStart>
+  // Does one real step of a run; answers with lines for the step log, or why it failed.
+  runStep(id: string, step: RealStep): Promise<StepResult>
+  // Stops a run: closes FL if it's rendering, then clears the run's temporary files.
+  stopRun(id: string): void
 }

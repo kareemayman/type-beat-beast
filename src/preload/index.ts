@@ -25,6 +25,9 @@ const api: Api = {
   showInFolder: (path) => ipcRenderer.send('shell:show', path),
   openNotes: () => ipcRenderer.send('notes:open'),
   onNotesChanged: (listener) => listen('notes:changed', listener),
+  startRun: (request) => ipcRenderer.invoke('run:start', request),
+  runStep: (id, step) => ipcRenderer.invoke('run:step', id, step),
+  stopRun: (id) => ipcRenderer.send('run:stop', id),
 }
 
 // Makes `window.api` available to the page. Only what's in `api` crosses over, nothing else.
