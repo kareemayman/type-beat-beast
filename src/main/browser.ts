@@ -1,7 +1,7 @@
 // The app's own Chrome profile (%APPDATA%\Type Beat Beast\chrome-profile) and the BeatStars session in it. The user
 // logs in there once, in a normal Chrome window with no automation attached, so any sign-in method works (Apple, X
-// and Discord often refuse windows a script controls) and the app never sees a password. Uploads (Phase 3) drive
-// the same profile with Playwright.
+// and Discord often refuse windows a script controls) and the app never sees a password. Playwright drives the same
+// profile for the login check, and later for uploads.
 import { app } from 'electron'
 import { spawn } from 'node:child_process'
 import { rm, stat } from 'node:fs/promises'
@@ -10,7 +10,6 @@ import { chromium } from 'playwright-core'
 import type { BeatStarsSession } from '../shared/api'
 import { readRegistryDefault } from './registry'
 
-const STUDIO = 'https://studio.beatstars.com/'
 const LOGIN = 'https://oauth.beatstars.com/verify?app=WEB_STUDIO&origin=https://studio.beatstars.com&send_callback=true'
 
 export const profileDir = () => join(app.getPath('userData'), 'chrome-profile')
@@ -42,8 +41,21 @@ function exclusive<T>(task: () => Promise<T>): Promise<T> {
 
 const NO_CHROME: BeatStarsSession = { ok: false, error: "Couldn't find Google Chrome. Install it to use BeatStars from the app." }
 
-// Is the app's profile logged in to BeatStars? A hidden Chrome opens the Studio: BeatStars sends a logged-out
-// visitor to its sign-up or login page instead, within a few seconds.
+// The login as BeatStars' login site keeps it in its local storage: a refresh token, and an access token with its
+// expiry (30 days from logging in). Logged in means a refresh token, or an access token that hasn't expired.
+interface StoredLogin {
+  access: boolean
+  refresh: boolean
+  expires: number // ms since 1970; 0 when unknown
+}
+
+export function isLoggedIn(login: StoredLogin, now = Date.now()): boolean {
+  return login.refresh || (login.access && login.expires > now)
+}
+
+// Is the app's profile logged in to BeatStars? A hidden Chrome reads the login site's storage. It loads a static
+// file there (robots.txt), so no BeatStars code runs. (Opening the Studio is no test: the Studio drops its own copy
+// of the login in a fresh browser and sends the visitor to the sign-up page.)
 export function beatStarsSession(): Promise<BeatStarsSession> {
   return exclusive(checkSession)
 }
@@ -56,9 +68,14 @@ async function checkSession(): Promise<BeatStarsSession> {
     const context = await chromium.launchPersistentContext(profileDir(), { executablePath: chrome, headless: true })
     try {
       const page = context.pages()[0] ?? (await context.newPage())
-      await page.goto(STUDIO, { waitUntil: 'domcontentloaded', timeout: 30_000 })
-      await page.waitForURL((url) => url.hostname !== 'studio.beatstars.com', { timeout: 8_000 }).catch(() => {})
-      return { ok: true, loggedIn: new URL(page.url()).hostname === 'studio.beatstars.com' }
+      await page.goto('https://oauth.beatstars.com/robots.txt', { waitUntil: 'domcontentloaded', timeout: 30_000 })
+      // Only whether the tokens are there and when the access token expires leave the page, never a token.
+      const login: StoredLogin = await page.evaluate(() => ({
+        access: !!localStorage.getItem('access_token'),
+        refresh: !!localStorage.getItem('refresh_token'),
+        expires: Number(localStorage.getItem('access_token_expiration')) || 0,
+      }))
+      return { ok: true, loggedIn: isLoggedIn(login) }
     } finally {
       await context.close()
     }

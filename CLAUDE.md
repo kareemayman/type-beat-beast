@@ -64,10 +64,12 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 - YouTube Studio upload defaults don't apply to API uploads, so the app sends title, description, tags and category itself. `notifySubscribers` defaults to true (the test set it to false).
 - npm `ffmpeg-static` 5.3.0 ships FFmpeg 6.1.1 with libx264 and libmp3lame. Its first download came out truncated with no error, so the app should check the binary runs.
 
-## BeatStars (looked at logged out, 2026-10-20)
+## BeatStars (looked at 2026-10-20)
 
-- Uploads happen in the Studio, `https://studio.beatstars.com`. Logged out, it sends visitors to `https://www.beatstars.com/studio/sell-beats` (a sign-up page) within a few seconds, and a hidden (headless) Chrome sees that too: the app's logged-in check is "does the Studio stay on studio.beatstars.com".
+- Uploads happen in the Studio, `https://studio.beatstars.com`. Logged out, it sends visitors to `https://www.beatstars.com/studio/sell-beats` (a sign-up page) within a few seconds.
 - Login page: `https://oauth.beatstars.com/verify?app=WEB_STUDIO&origin=https://studio.beatstars.com&send_callback=true`, with email or username, or Continue with X, Apple or Discord. A OneTrust cookie banner shows first.
+- Where the login lives: in the login site's local storage (`oauth.beatstars.com`: `access_token`, `refresh_token`, `access_token_expiration`; the access token lasts 30 days from logging in). No cookie holds it. The Studio keeps its own copy, but drops it when opened in a fresh browser and sends the visitor to the sign-up page; so opening the Studio is no login test. The app's check reads the login site's storage from a static file there (`robots.txt`, so no BeatStars code runs): logged in = a refresh token, or an access token not yet expired (`isLoggedIn`, tested). Learned the hard way: the first check opened the Studio and reported the user logged out right after a real login.
+- With a saved login, BeatStars' own "Sign in" link (the verify page) doesn't hand the session to the Studio by itself: it stays on the verify page showing "Continue to app". The upload flow will have to go through that (not tried yet).
 - The app's own Chrome profile is `%APPDATA%\Type Beat Beast\chrome-profile`. The user logs in there in a normal Chrome window the app opens with no automation attached (social logins often refuse windows a script controls); Playwright (`playwright-core` 1.63.0, driving the installed Chrome) only does the hidden check now and the uploads later. Chrome locks a profile while it's open, so `browser.ts` lets one thing use it at a time. Log out deletes that profile; the user's own Chrome is never touched.
 
 ## Naming system
@@ -153,7 +155,7 @@ Pressing Run renders for real. `src/main/run.ts` keeps each run (the beat folder
 
 ## Phase 3 — BeatStars
 
-- [ ] Separate Chrome profile for the app; the user logs in to BeatStars there once (built 2026-10-20: Settings → BeatStars → Log in, tested logged out; waiting for the user's first login to confirm the logged-in check)
+- [ ] Separate Chrome profile for the app; the user logs in to BeatStars there once (built 2026-10-20: Settings → BeatStars → Log in; the user's login is saved in the profile, valid until 2026-11-19; the fixed check is waiting for the user to confirm the card says Logged in)
 - [ ] Record one upload done by hand with Playwright's recorder, then turn it into the upload script
 - [ ] Upload the files (following the stems and tagged-file options); fill in title, BPM, key and artwork; turn on the free tagged MP3 download (non-commercial)
 - [ ] Collaborators: for each one, type the name in the collabs section and pick the first dropdown result; flag it in the review if the picked account's name doesn't match
