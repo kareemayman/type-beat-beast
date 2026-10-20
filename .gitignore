@@ -6,3 +6,6 @@ dist/
 # Google sign-in keys and tokens never go into git
 client_secret*.json
 token*.json
+
+# Recordings of the user's own BeatStars uploads (their files, titles, tags), only read to write the upload script
+recordings/
