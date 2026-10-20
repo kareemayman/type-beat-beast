@@ -23,7 +23,7 @@ Desktop app (Electron + TypeScript) for a type beat producer. It takes a finishe
 
 - `npm run dev` starts the app with hot reload (only the React app reloads; after changing `src/main` or `src/preload`, stop and restart it) · `npm run build` builds into `out/` · `npm start` runs the built app · `npm run typecheck` checks types · `npm test` runs the Vitest tests (`*.test.ts` next to the code).
 - Vitest stays on 3.2.x: adding Vitest 4.1 crashes npm 11.2 (`Cannot read properties of null (reading 'edgesOut')`) while it resolves Vitest's optional devtools peers.
-- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files and writes the tag-switched copies; `beatFolder.ts` works out a beat's folder and file names; `render.ts` renders with FL's command line; `stems.ts` names the stems and packs them with WinRAR; `registry.ts` reads and writes the registry with reg.exe; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio; `windows.ts` creates every window with the same lockdown; `notes.ts` the Notes window) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
+- `src/main/` main process (Node: files, FL Studio, WinRAR, windows; `project.ts` reads .flp files and writes the tag-switched copies; `beatFolder.ts` works out a beat's folder and file names; `render.ts` renders with FL's command line; `stems.ts` names the stems and packs them with WinRAR (or into a ZIP); `registry.ts` reads and writes the registry with reg.exe; `settings.ts` keeps the settings file; `flStudio.ts` finds FL Studio; `windows.ts` creates every window with the same lockdown; `notes.ts` the Notes window) · `src/preload/` the bridge, exposes `window.api` · `src/shared/` code and types both sides use (`Api`, the contract for `window.api`; `parseBeatName`; `schedule`, the daily YouTube slots; `settings`, the settings type, defaults and `cleanSettings`) · `src/renderer/` the React app.
 - Renderer: two pages, `index.html` (main window, `src/main.tsx`) and `notes.html` (Notes window, `src/notes/`), both listed in `electron.vite.config.ts` · `lib/` state and logic (the settings provider, toasts, the beat model, the pipeline, demo data, small hooks) · `components/` shared UI (Card, TitleBar, Rail, Mascot, Celebration, controls) · `screens/` one folder or file per screen · `styles/tokens.css` the design tokens and every animation. Components use CSS Modules (`*.module.css`); animations whose speed depends on the BPM are set as inline styles.
 - IPC routes so far: `project:read` (invoke) reads an .flp; `settings:load` / `settings:save` (invoke) read and change the settings; `fl:find` / `fl:pick` (invoke) find FL Studio or let the user point to it in Windows' file dialog; `output:pick` (invoke) opens Windows' folder dialog and answers with the folder, which the page saves; `shell:show` (send) opens Explorer at a file; `notes:open` (send) opens or focuses Notes; `window:theme` (send) recolors the sending window's caption buttons. Pushed from main to the pages: `settings:changed` (the fields another window just saved) and `notes:changed` (Notes opened or closed); the preload's `listen` passes only the data, never the IPC event. Dropped and picked files get their full path through `webUtils.getPathForFile` in the preload.
 - Settings live in `%APPDATA%\Type Beat Beast\settings.json` (the Notes text too), owned by the main process; every value goes through `cleanSettings`. Not localStorage: that belongs to the page's address, so the dev server (port 5173, or 5174 when 5173 is busy) and the built app each had their own copy. The first launch with the file hands over the old localStorage copy once.
@@ -115,7 +115,8 @@ Each published beat gets a folder named after the beat (as shown in the beat det
   <project>.flp           moved in at the very end
   <project>.wav           untagged
   <project> TAGGED.mp3    tagged; the one MP3 for both BeatStars and the YouTube video
-  <beat name>.rar         the stems: <project> - Track 1.wav, - Track 2.wav… in mixer order (the user's naming)
+  <beat name>.rar         the stems: <project> - Track 1.wav, - Track 2.wav… in mixer order (the user's naming);
+                          <beat name>.zip instead when WinRAR isn't installed
 ```
 
 `src/main/beatFolder.ts` works out these paths (beat names are made safe for Windows). A status file in the folder will let a failed step be retried without redoing the ones before it.
@@ -149,7 +150,7 @@ Every screen from the design works: New beat (drop the .flp and cover, beat deta
 - [x] Render runner (`src/main/render.ts`): refuses while FL is open, sets the registry values with a crash-safe backup, runs the command line, waits for FL to close, restores the user's values
 - [x] Untagged WAV + stems in one split render from the muted copy (a normal WAV render when stems are off): `renderUntagged`
 - [x] Tagged MP3 render from the copy with the tag on: `renderTagged`
-- [x] Pack the stems with WinRAR, without Master and Current (`src/main/stems.ts`): renamed to `<project> - Track N.wav` in mixer order, packed without paths; tested with the real Rar.exe and with the stem names FL really wrote for flowers
+- [x] Pack the stems with WinRAR, without Master and Current (`src/main/stems.ts`): renamed to `<project> - Track N.wav` in mixer order, packed without paths, ZIP when WinRAR isn't installed; tested with the real Rar.exe, a real ZIP with "café ℹ" names, and the stem names FL really wrote for flowers
 - [ ] Wire the real steps into the app: create the beat folder, render, move the WAV and MP3 in, pack the stems; the pipeline's first steps stop being a demo
 
 ## Phase 3 — BeatStars
@@ -185,7 +186,7 @@ Every screen from the design works: New beat (drop the .flp and cover, beat deta
 - **Quality:** 24-bit WAV and 320 kbps MP3 by default, changeable in Settings.
 - **Video audio:** MP3, not AAC. If the source is already an MP3, its audio goes into the video unchanged (no re-encode); anything that needs encoding uses libmp3lame at 320 kbps.
 - **YouTube:** the official API, not browser automation. No audit needed for this project.
-- **Stems archive:** RAR with WinRAR. Fall back to ZIP if BeatStars rejects RAR.
+- **Stems archive:** RAR with WinRAR. When WinRAR isn't installed, a ZIP made with PowerShell's built-in `Compress-Archive` (user, 2026-10-20); file paths reach PowerShell through environment variables, never in the command. Not Windows' `tar.exe`: it crashes (0xC0000005) on names like "café". ZIP is also the way out if BeatStars ever rejects RAR.
 - **Logins:** the app never stores or types passwords. BeatStars: the user logs in once in the app's own Chrome profile. YouTube: a one-time Google permission screen.
 - **BeatStars plan:** Pro, so stem uploads are available.
 - **One tagged MP3:** the same `<project> TAGGED.mp3` goes to BeatStars and into the YouTube video (user, 2026-10-19). Their older beats had separate BEATSTARS and YOUTUBE MP3s.

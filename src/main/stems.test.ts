@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { findRar, packStems, stemNames } from './stems'
+import { findPacker, findRar, packStems, stemNames } from './stems'
 
 const project = 'flowers - 140 Em'
 const tracks = [
@@ -42,27 +42,75 @@ describe('stemNames', () => {
   })
 })
 
-// Packs three small stand-in WAVs with the real WinRAR, in a temp folder (skipped where WinRAR isn't installed).
+// Packing for real, with small stand-in WAVs in temp folders.
 const folders: string[] = []
 afterAll(() => folders.forEach((folder) => rmSync(folder, { recursive: true, force: true })))
 
-describe.runIf(existsSync('C:\\Program Files\\WinRAR\\Rar.exe'))('packStems', () => {
-  it('renames the stems and packs them without paths', async () => {
-    const work = mkdtempSync(join(tmpdir(), 'tbb-'))
-    folders.push(work)
-    const files = ['Hive', 'Xpand!2', 'venexxi - ! spinz 808'].map((name) => {
-      const file = join(work, `${project}_${name}.wav`)
-      writeFileSync(file, Buffer.alloc(4096, name.length))
-      return file
-    })
-    const rar = await findRar()
-    const archive = join(work, 'flowers.rar')
-    writeFileSync(archive, 'an older archive') // replaced, not added to
+// Three stand-in stems as FL would name them, in a fresh temp folder.
+function fakeStems(projectName: string): { work: string; files: string[] } {
+  const work = mkdtempSync(join(tmpdir(), 'tbb-'))
+  folders.push(work)
+  const files = ['Hive', 'Xpand!2', 'venexxi - ! spinz 808'].map((name) => {
+    const file = join(work, `${projectName}_${name}.wav`)
+    writeFileSync(file, Buffer.alloc(4096, name.length))
+    return file
+  })
+  return { work, files }
+}
 
-    await packStems(rar, stemNames(files, project, tracks), archive)
+// The names in a ZIP's central directory, and whether each is flagged as UTF-8 (bit 11), so any unzipper reads
+// names like "café" right.
+function zipEntries(zip: string): { name: string; utf8: boolean }[] {
+  const buf = readFileSync(zip)
+  const end = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
+  const entries: { name: string; utf8: boolean }[] = []
+  for (let i = 0, pos = buf.readUInt32LE(end + 16); i < buf.readUInt16LE(end + 10); i++) {
+    const nameLength = buf.readUInt16LE(pos + 28)
+    entries.push({ name: buf.toString('utf8', pos + 46, pos + 46 + nameLength), utf8: (buf.readUInt16LE(pos + 8) & 0x800) !== 0 })
+    pos += 46 + nameLength + buf.readUInt16LE(pos + 30) + buf.readUInt16LE(pos + 32)
+  }
+  return entries
+}
 
+describe('findPacker', () => {
+  it('picks WinRAR when it is installed, otherwise ZIP', async () => {
+    expect((await findPacker()).kind).toBe((await findRar()) ? 'rar' : 'zip')
+  })
+})
+
+describe.runIf(existsSync('C:\\Program Files\\WinRAR\\Rar.exe'))('packStems with WinRAR', () => {
+  it('renames the stems and packs them without paths, replacing an older archive', async () => {
+    const { work, files } = fakeStems(project)
+    const rar = (await findRar())!
+    writeFileSync(join(work, 'flowers.rar'), 'an older archive')
+
+    const archive = await packStems({ kind: 'rar', exe: rar }, stemNames(files, project, tracks), join(work, 'flowers.rar'))
+
+    expect(archive).toBe(join(work, 'flowers.rar'))
     const inside = execFileSync(rar, ['lb', archive], { encoding: 'utf8' }).trim().split(/\r?\n/)
     expect(inside).toEqual(['flowers - 140 Em - Track 1.wav', 'flowers - 140 Em - Track 2.wav', 'flowers - 140 Em - Track 3.wav'])
     expect(readdirSync(work).sort()).toEqual(['flowers - 140 Em - Track 1.wav', 'flowers - 140 Em - Track 2.wav', 'flowers - 140 Em - Track 3.wav', 'flowers.rar'])
   })
+})
+
+describe('packStems with ZIP (no WinRAR)', () => {
+  it('makes a .zip instead, with names that survive characters like "é" and "ℹ"', async () => {
+    const unicodeProject = 'café ℹ - 140 Em'
+    const { work, files } = fakeStems(unicodeProject)
+    writeFileSync(join(work, 'café ℹ.zip'), 'an older archive')
+
+    const archive = await packStems({ kind: 'zip' }, stemNames(files, unicodeProject, tracks), join(work, 'café ℹ.rar'))
+
+    expect(archive).toBe(join(work, 'café ℹ.zip'))
+    expect(zipEntries(archive)).toEqual([1, 2, 3].map((n) => ({ name: `café ℹ - 140 Em - Track ${n}.wav`, utf8: true })))
+  }, 30_000)
+
+  it("treats quotes, $ and ; in names as plain text, since they never reach PowerShell's command", async () => {
+    const trickyProject = "don't $stop; now - 140 Em"
+    const { work, files } = fakeStems(trickyProject)
+
+    const archive = await packStems({ kind: 'zip' }, stemNames(files, trickyProject, tracks), join(work, "don't $stop; now.rar"))
+
+    expect(zipEntries(archive).map((entry) => entry.name)).toEqual([1, 2, 3].map((n) => `${trickyProject} - Track ${n}.wav`))
+  }, 30_000)
 })
