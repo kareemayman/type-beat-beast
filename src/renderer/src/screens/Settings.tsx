@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ChevronDown, CircleAlert, CircleCheck, FolderOpen, MicVocal, Undo2, X } from 'lucide-react'
-import type { FlStudioStatus } from '../../../shared/api'
+import { ChevronDown, CircleAlert, CircleCheck, FolderOpen, Hand, LoaderCircle, LogIn, LogOut, MicVocal, TriangleAlert, Undo2, X, type LucideIcon } from 'lucide-react'
+import type { BeatStarsSession, FlStudioStatus } from '../../../shared/api'
 import Card from '../components/Card'
+import ConfirmButton from '../components/ConfirmButton'
 import { Segmented, Switch } from '../components/controls'
 import { useMediaQuery } from '../lib/environment'
 import { useSettings } from '../lib/settings'
@@ -24,11 +25,25 @@ function Row({ title, sub, className = '', children }: { title: string; sub?: st
   )
 }
 
+// The BeatStars card's states: a session answer from the main process, or something in progress.
+type BeatStarsCard = BeatStarsSession | 'checking' | 'loggingIn' | 'loggingOut'
+
+function beatStarsLook(bs: BeatStarsCard): { tone: string; icon: LucideIcon; title: string; sub: string } {
+  if (bs === 'checking') return { tone: 'muted', icon: LoaderCircle, title: 'Checking…', sub: "Looking at the app's own Chrome profile." }
+  if (bs === 'loggingIn') return { tone: 'sky', icon: Hand, title: 'Your turn', sub: 'Log in in the Chrome window, then close it.' }
+  if (bs === 'loggingOut') return { tone: 'muted', icon: LoaderCircle, title: 'Logging out…', sub: "Clearing the app's Chrome profile." }
+  if (!bs.ok) return { tone: 'rose', icon: CircleAlert, title: "Couldn't check", sub: bs.error }
+  return bs.loggedIn
+    ? { tone: 'green', icon: CircleCheck, title: 'Logged in', sub: 'Uploads reuse this session.' }
+    : { tone: 'yellow', icon: TriangleAlert, title: 'Not logged in', sub: 'Log in once so uploads can run.' }
+}
+
 // Built card by card from the design. Every change saves right away (see lib/settings.tsx).
 export default function Settings() {
   const { settings, update } = useSettings()
   const toast = useToast()
   const [fl, setFl] = useState<FlStudioStatus | null>(null) // null while it's looking
+  const [bs, setBs] = useState<BeatStarsCard>('checking')
   const [tagDraft, setTagDraft] = useState('')
 
   // FL Studio is looked up each time Settings opens, so a moved or reinstalled FL shows up here.
@@ -41,6 +56,35 @@ export default function Settings() {
       current = false
     }
   }, [])
+
+  // The BeatStars session is checked each time Settings opens, like FL Studio.
+  useEffect(() => {
+    let current = true
+    void window.api.beatStarsSession().then((session) => {
+      if (current) setBs(session)
+    })
+    return () => {
+      current = false
+    }
+  }, [])
+
+  async function logInToBeatStars() {
+    setBs('loggingIn')
+    const session = await window.api.logInToBeatStars()
+    setBs(session)
+    if (!session.ok) toast('failed', session.error)
+    else if (session.loggedIn) toast('done', 'BeatStars session saved.')
+    else toast('info', 'Still logged out. Log in in the Chrome window, then close it.')
+  }
+
+  async function logOutOfBeatStars() {
+    setBs('loggingOut')
+    const session = await window.api.logOutOfBeatStars()
+    setBs(session)
+    if (!session.ok) toast('failed', session.error)
+  }
+
+  const bsLook = beatStarsLook(bs)
 
   async function browseFl() {
     const status = await window.api.pickFlStudio()
@@ -200,6 +244,28 @@ export default function Settings() {
             </Row>
           </Card>
 
+          {/* Logging in happens in a normal Chrome window in the app's own profile (see src/main/browser.ts). */}
+          <Card sticker="BeatStars" stickerColor="var(--sky)" className={styles.card}>
+            <div className={`${styles.row} ${styles.bsRow}`}>
+              <span className={styles.pill} data-tone={bsLook.tone}>
+                <bsLook.icon size={15} strokeWidth={2.75} />
+                {bsLook.title}
+              </span>
+              <span className={styles.bsSub}>{bsLook.sub}</span>
+              {typeof bs === 'object' && bs.ok && bs.loggedIn ? (
+                <ConfirmButton className={styles.action} onConfirm={logOutOfBeatStars} confirmLabel="Click again to log out">
+                  <LogOut size={16} strokeWidth={2.5} />
+                  Log out
+                </ConfirmButton>
+              ) : (
+                <button className={styles.action} data-primary="true" disabled={typeof bs === 'string'} onClick={logInToBeatStars}>
+                  <LogIn size={16} strokeWidth={2.5} />
+                  Log in
+                </button>
+              )}
+            </div>
+          </Card>
+
           {/* The names Tag detection trusts first (see CLAUDE.md). Running a beat adds its tag track's name. */}
           <Card sticker="Tags" stickerColor="var(--yellow)" className={`${styles.card} ${styles.tags}`}>
             <p className={styles.note}>A mixer track with one of these names gets picked as the voice tag. Otherwise the app guesses.</p>
@@ -256,7 +322,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <p className={styles.later}>The BeatStars and YouTube logins get their cards in Phases 3 and 4.</p>
+      <p className={styles.later}>The YouTube login gets its card in Phase 4.</p>
     </div>
   )
 }

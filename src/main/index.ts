@@ -3,6 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } fr
 import { existsSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { savedPart } from '../shared/settings'
+import { beatStarsSession, logInToBeatStars, logOutOfBeatStars } from './browser'
 import { findFlStudio, pickFlStudio } from './flStudio'
 import { closeNotes, openNotes } from './notes'
 import { readProject } from './project'
@@ -68,6 +69,11 @@ ipcMain.handle('run:step', (_event, id: unknown, step: unknown) =>
 ipcMain.on('run:stop', (_event, id: unknown) => {
   if (typeof id === 'string') void stopRun(id)
 })
+
+// BeatStars: the session in the app's own Chrome profile. Logging in happens in a normal Chrome window.
+ipcMain.handle('beatstars:session', () => beatStarsSession())
+ipcMain.handle('beatstars:login', () => logInToBeatStars())
+ipcMain.handle('beatstars:logout', () => logOutOfBeatStars())
 
 // "Open folder": Explorer opens with the file selected. Only full paths to things that exist get through.
 ipcMain.on('shell:show', (_event, path: unknown) => {

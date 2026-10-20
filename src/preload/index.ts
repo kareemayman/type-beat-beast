@@ -28,6 +28,9 @@ const api: Api = {
   startRun: (request) => ipcRenderer.invoke('run:start', request),
   runStep: (id, step) => ipcRenderer.invoke('run:step', id, step),
   stopRun: (id) => ipcRenderer.send('run:stop', id),
+  beatStarsSession: () => ipcRenderer.invoke('beatstars:session'),
+  logInToBeatStars: () => ipcRenderer.invoke('beatstars:login'),
+  logOutOfBeatStars: () => ipcRenderer.invoke('beatstars:logout'),
 }
 
 // Makes `window.api` available to the page. Only what's in `api` crosses over, nothing else.

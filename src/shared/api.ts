@@ -18,6 +18,9 @@ export interface RunRequest {
 export type RealStep = 'wav' | 'mp3' | 'rar' | 'tidy'
 
 export type RunStart = { ok: true; id: string } | { ok: false; error: string }
+
+// Whether the app's own Chrome profile is logged in to BeatStars, or why that couldn't be checked.
+export type BeatStarsSession = { ok: true; loggedIn: boolean } | { ok: false; error: string }
 export type StepResult = { ok: true; log: string[] } | { ok: false; error: string }
 
 // The contract between the React app and the preload: everything React is allowed to use is listed here.
@@ -53,4 +56,10 @@ export interface Api {
   runStep(id: string, step: RealStep): Promise<StepResult>
   // Stops a run: closes FL if it's rendering, then clears the run's temporary files.
   stopRun(id: string): void
+  // Checks the BeatStars session in the app's own Chrome profile (takes a few seconds).
+  beatStarsSession(): Promise<BeatStarsSession>
+  // Opens a Chrome window on BeatStars' login page; answers once the user has closed it.
+  logInToBeatStars(): Promise<BeatStarsSession>
+  // Deletes the app's Chrome profile, and with it the BeatStars session.
+  logOutOfBeatStars(): Promise<BeatStarsSession>
 }

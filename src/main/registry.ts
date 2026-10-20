@@ -26,6 +26,16 @@ export async function readRegistry(key: string, name: string): Promise<string | 
   }
 }
 
+// A key's unnamed default value (what reg shows as "(Default)", a name Windows translates, so it isn't matched).
+export async function readRegistryDefault(key: string): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync(REG, ['query', key, '/ve'])
+    return /\sREG_\w+\s+(.*)$/m.exec(stdout)?.[1].trim() || null
+  } catch {
+    return null
+  }
+}
+
 // Writes a text value (REG_SZ), creating the key if needed.
 export async function writeRegistry(key: string, name: string, value: string): Promise<void> {
   await execFileAsync(REG, ['add', key, '/v', name, '/t', 'REG_SZ', '/d', value, '/f'])
