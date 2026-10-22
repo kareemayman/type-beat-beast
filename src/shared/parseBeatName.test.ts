@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { keyLabel, parseBeatName } from './parseBeatName'
+import { keyLabel, parseBeatName, parseKey } from './parseBeatName'
 
 function beat(fileName: string) {
   const result = parseBeatName(fileName)
@@ -60,6 +60,21 @@ describe('parseBeatName', () => {
     expect(parseBeatName('beat - 140 Hm').ok).toBe(false)
     expect(parseBeatName('beat - 140 Cdorian').ok).toBe(false)
     expect(parseBeatName('140 Em').ok).toBe(false)
+  })
+})
+
+describe('parseKey', () => {
+  it('reads a key as the beat details show it, or as a file name writes it', () => {
+    expect(parseKey('F min')).toEqual({ tonic: 'F', mode: 'minor' })
+    expect(parseKey('C maj')).toEqual({ tonic: 'C', mode: 'major' })
+    expect(parseKey('D#m')).toEqual({ tonic: 'D#', mode: 'minor' })
+    expect(parseKey(' bb minor ')).toEqual({ tonic: 'Bb', mode: 'minor' })
+    expect(parseKey('G♯M')).toEqual({ tonic: 'G#', mode: 'major' })
+    expect(parseKey('Eb')).toEqual({ tonic: 'Eb', mode: null })
+  })
+
+  it('answers null to anything else', () => {
+    for (const text of ['', 'H min', 'F dorian', 'Fmin7', '140']) expect(parseKey(text)).toBeNull()
   })
 })
 

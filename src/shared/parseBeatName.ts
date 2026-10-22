@@ -30,8 +30,8 @@ export function parseBeatName(fileName: string): ParseResult {
   if (!parts) return { ok: false, error: 'The name should end with the BPM and key, like "140 Em".' }
 
   const { prefix, bpm, letter, accidental, suffix } = parts
-  const mode = readMode(suffix)
-  if (mode === undefined) return { ok: false, error: `"${letter}${accidental}${suffix}" isn't a key the app knows.` }
+  const key = readKey(letter, accidental, suffix)
+  if (!key) return { ok: false, error: `"${letter}${accidental}${suffix}" isn't a key the app knows.` }
 
   const segments = prefix.trim().split(/\s+-\s+/)
   const hasProducers = segments.length > 1 && /\s+x\s+/i.test(segments[0])
@@ -44,10 +44,25 @@ export function parseBeatName(fileName: string): ParseResult {
     beat: {
       name,
       bpm: Number(bpm),
-      key: { tonic: letter.toUpperCase() + accidental.replace('♯', '#').replace('♭', 'b'), mode },
+      key,
       producers,
     },
   }
+}
+
+// A key on its own, as the beat details show it ("F min", "C maj", or "Eb" with no major/minor marker) or as a file
+// name writes it ("D#m", "Fmin"). Null when it isn't one.
+const KEY = /^(?<letter>[A-Ga-g])(?<accidental>[#b♯♭]?)\s*(?<suffix>[A-Za-z]*)$/
+
+export function parseKey(text: string): BeatKey | null {
+  const parts = KEY.exec(text.trim())?.groups
+  return (parts && readKey(parts.letter, parts.accidental, parts.suffix)) ?? null
+}
+
+function readKey(letter: string, accidental: string, suffix: string): BeatKey | undefined {
+  const mode = readMode(suffix)
+  if (mode === undefined) return undefined
+  return { tonic: letter.toUpperCase() + accidental.replace('♯', '#').replace('♭', 'b'), mode }
 }
 
 // Minor: lowercase "m" or "min". Major: capital "M" or "maj". Three-letter forms work in any case,
