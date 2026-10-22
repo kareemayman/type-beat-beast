@@ -2,11 +2,11 @@
 // logs in there once, in a normal Chrome window with no automation attached, so any sign-in method works (Apple, X
 // and Discord often refuse windows a script controls) and the app never sees a password. Playwright drives the same
 // profile for the login check, and later for uploads.
-import { app } from 'electron'
+import { app, screen } from 'electron'
 import { spawn } from 'node:child_process'
 import { rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import { chromium } from 'playwright-core'
+import { chromium, type Page } from 'playwright-core'
 import type { BeatStarsSession } from '../shared/api'
 import { readRegistryDefault } from './registry'
 
@@ -39,7 +39,8 @@ function exclusive<T>(task: () => Promise<T>): Promise<T> {
   return turn
 }
 
-const NO_CHROME: BeatStarsSession = { ok: false, error: "Couldn't find Google Chrome. Install it to use BeatStars from the app." }
+const NO_CHROME_MESSAGE = "Couldn't find Google Chrome. Install it to use BeatStars from the app."
+const NO_CHROME: BeatStarsSession = { ok: false, error: NO_CHROME_MESSAGE }
 
 // The login as the Studio keeps it in its local storage (the same keys as the sign-in site): a refresh token, and an
 // access token with its expiry (30 days from logging in). Logged in means a refresh token, or an access token that
@@ -100,6 +101,53 @@ export function logInToBeatStars(): Promise<BeatStarsSession> {
     })
     return checkSession()
   })
+}
+
+// The Chrome window an upload works in (beatstarsUpload.ts). It stays open from the fill-in until the user publishes
+// or stops, holding the profile all that time (Chrome locks it), so a login check or a log out waits until it closes.
+export interface UploadBrowser {
+  page: Page
+  isOpen(): boolean
+  show(): Promise<void> // onto the main screen, maximized, in front
+  close(): Promise<void>
+}
+
+// Settings → Show Chrome on: a normal maximized window. Off: a normal window too (BeatStars sees an ordinary
+// browser either way), but placed left of every screen until show() brings it over.
+export function openUploadBrowser(visible: boolean): Promise<UploadBrowser> {
+  return new Promise((resolve, reject) => {
+    exclusive(async () => {
+      const chrome = await findChrome()
+      if (!chrome) throw new Error(NO_CHROME_MESSAGE)
+      const offScreen = Math.min(...screen.getAllDisplays().map((display) => display.bounds.x)) - 2000
+      const context = await chromium.launchPersistentContext(profileDir(), {
+        executablePath: chrome,
+        headless: false,
+        viewport: null, // the page fills the window, like in normal Chrome
+        args: visible ? ['--start-maximized'] : [`--window-position=${offScreen},0`, '--window-size=1600,1000'],
+      })
+      let open = true
+      const closed = new Promise<void>((done) => context.once('close', () => done()))
+      void closed.then(() => (open = false))
+      const page = context.pages()[0] ?? (await context.newPage())
+      resolve({ page, isOpen: () => open, show: () => bringUp(page), close: () => context.close() })
+      await closed
+    }).catch(reject)
+  })
+}
+
+// Moves the window onto the main screen and maximizes it, through Chrome's DevTools protocol (CDP).
+async function bringUp(page: Page): Promise<void> {
+  const cdp = await page.context().newCDPSession(page)
+  try {
+    const { windowId } = await cdp.send('Browser.getWindowForTarget')
+    const { x, y, width, height } = screen.getPrimaryDisplay().workArea
+    await cdp.send('Browser.setWindowBounds', { windowId, bounds: { left: x, top: y, width, height, windowState: 'normal' } })
+    await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'maximized' } })
+  } finally {
+    await cdp.detach()
+  }
+  await page.bringToFront()
 }
 
 // Logs out by deleting the app's profile, whose cookies are the session. The user's own Chrome isn't touched.

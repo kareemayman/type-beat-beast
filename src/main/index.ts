@@ -8,7 +8,7 @@ import { findFlStudio, pickFlStudio } from './flStudio'
 import { closeNotes, openNotes } from './notes'
 import { readProject } from './project'
 import { restoreExportChoices } from './render'
-import { cleanRunRequest, isRealStep, runStep, startRun, stopRun } from './run'
+import { cleanRunRequest, isRealStep, runStep, showBeatStars, startRun, stopRun } from './run'
 import { loadSettings, saveSettings } from './settings'
 import { CAPTION_BUTTONS, createWindow } from './windows'
 
@@ -58,7 +58,8 @@ ipcMain.handle('output:pick', async (event) => {
   return canceled ? null : (filePaths[0] ?? null)
 })
 
-// A beat's run: the page starts it, then asks for one real step at a time (renders, stems, tidy), or stops it.
+// A beat's run: the page starts it, then asks for one real step at a time (renders, stems, BeatStars, tidy), or
+// stops it. "Open in browser" on the BeatStars review brings up that step's Chrome window.
 ipcMain.handle('run:start', (_event, request: unknown) => {
   const clean = cleanRunRequest(request)
   return clean ? startRun(clean, exportBackupFile()) : { ok: false, error: "That isn't a beat the app can run." }
@@ -69,6 +70,7 @@ ipcMain.handle('run:step', (_event, id: unknown, step: unknown) =>
 ipcMain.on('run:stop', (_event, id: unknown) => {
   if (typeof id === 'string') void stopRun(id)
 })
+ipcMain.handle('run:show', (_event, id: unknown) => (typeof id === 'string' ? showBeatStars(id) : { ok: false, error: 'Unknown run.' }))
 
 // BeatStars: the session in the app's own Chrome profile. Logging in happens in a normal Chrome window.
 ipcMain.handle('beatstars:session', () => beatStarsSession())

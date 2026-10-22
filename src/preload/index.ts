@@ -28,6 +28,7 @@ const api: Api = {
   startRun: (request) => ipcRenderer.invoke('run:start', request),
   runStep: (id, step) => ipcRenderer.invoke('run:step', id, step),
   stopRun: (id) => ipcRenderer.send('run:stop', id),
+  showBeatStars: (id) => ipcRenderer.invoke('run:show', id),
   beatStarsSession: () => ipcRenderer.invoke('beatstars:session'),
   logInToBeatStars: () => ipcRenderer.invoke('beatstars:login'),
   logOutOfBeatStars: () => ipcRenderer.invoke('beatstars:logout'),

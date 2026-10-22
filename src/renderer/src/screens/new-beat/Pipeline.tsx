@@ -62,10 +62,10 @@ export default function Pipeline(props: PipelineProps) {
   const b = beatSeconds(bpm).toFixed(3)
   const firstQueued = steps.findIndex((step, i) => displayStatus(step, i, stems) === 'queued')
   const headline =
-    phase === 'running' ? STEPS[current].running(ctx)
+    phase === 'running' ? STEPS[current].running(ctx, steps[current])
     : phase === 'needs' ? STEPS[current].needs
     : phase === 'failed' ? (steps[current].error ?? STEPS[current].failed)
-    : phase === 'done' ? (DEMO ? 'Done. The renders are in the beat folder; the uploads were a demo.' : `Every step done. Scheduled for tomorrow ${publishTime}.`)
+    : phase === 'done' ? (DEMO ? "Done. It's live on BeatStars and the files are in the beat folder; YouTube was a demo." : `Every step done. Scheduled for tomorrow ${publishTime}.`)
     : name ? 'Ready when you are. Hit Run.'
     : 'Drop a project and hit Run.'
   const count = phase === 'done' ? STEPS.length : phase === 'idle' ? 0 : current + 1

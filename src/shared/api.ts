@@ -12,12 +12,18 @@ export interface RunRequest {
   beatName: string
   tagIndex: number | null // the tag's mixer track, or null for no tag
   stems: boolean
+  bpm: number
+  key: string // as the beat details show it ("C# min"); BeatStars needs major or minor
+  cover: string // the cover image, BeatStars' artwork
+  bsFile: 'mp3' | 'wav' // BeatStars' tagged file: the tagged MP3, or none, so BeatStars tags the preview itself
 }
 
-// The steps the main process really does so far; BeatStars and YouTube are still simulated in the page.
-export type RealStep = 'wav' | 'mp3' | 'rar' | 'tidy'
+// The steps the main process does: both renders, the stems, BeatStars (filling in, then publishing once the user
+// says so) and tidying up. YouTube is still simulated in the page.
+export type RealStep = 'wav' | 'mp3' | 'rar' | 'bs' | 'publish' | 'tidy'
 
 export type RunStart = { ok: true; id: string } | { ok: false; error: string }
+export type Done = { ok: true } | { ok: false; error: string }
 
 // Whether the app's own Chrome profile is logged in to BeatStars, or why that couldn't be checked.
 export type BeatStarsSession = { ok: true; loggedIn: boolean } | { ok: false; error: string }
@@ -54,8 +60,12 @@ export interface Api {
   startRun(request: RunRequest): Promise<RunStart>
   // Does one real step of a run; answers with lines for the step log, or why it failed.
   runStep(id: string, step: RealStep): Promise<StepResult>
-  // Stops a run: closes FL if it's rendering, then clears the run's temporary files.
+  // Stops a run: closes FL if it's rendering and the BeatStars window (its draft stays), then clears the run's
+  // temporary files.
   stopRun(id: string): void
+  // Brings up the run's BeatStars window (it works out of sight when Settings → Show Chrome is off), or opens the
+  // draft again in a new one if the window was closed.
+  showBeatStars(id: string): Promise<Done>
   // Checks the BeatStars session in the app's own Chrome profile (takes a few seconds).
   beatStarsSession(): Promise<BeatStarsSession>
   // Opens a Chrome window on BeatStars' login page; answers once the user has closed it.

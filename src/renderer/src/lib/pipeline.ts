@@ -1,9 +1,9 @@
 import { useEffect, useReducer, useRef } from 'react'
 import { AudioWaveform, CalendarClock, Clapperboard, Music2, Package, Sparkles, Store, type LucideIcon } from 'lucide-react'
-import type { RealStep, RunRequest, StepResult } from '../../../shared/api'
+import type { Done, RealStep, RunRequest, StepResult } from '../../../shared/api'
 
-// The renders, the stems and tidying up are real: the main process does them (src/main/run.ts). BeatStars and
-// YouTube are still simulated with made-up timings until Phases 3 and 4; DEMO marks the places that say so.
+// The renders, the stems, BeatStars and tidying up are real: the main process does them (src/main/run.ts). YouTube
+// is still simulated with made-up timings until Phase 4; DEMO marks the places that say so.
 export const DEMO = true
 
 export type StepId = 'wav' | 'mp3' | 'rar' | 'bs' | 'ytv' | 'yts' | 'tidy'
@@ -17,6 +17,7 @@ export interface StepState {
   startedAt: number | null
   log?: string[] // what a real step did, from the main process
   error?: string // why a real step failed
+  approved?: boolean // BeatStars: the user OK'd the draft, so the step is publishing it
 }
 
 export interface LogContext {
@@ -32,7 +33,7 @@ export interface StepDef {
   short: string
   icon: LucideIcon
   real: boolean // done by the main process; otherwise simulated here
-  running(ctx: LogContext): string // headline while it runs
+  running(ctx: LogContext, step: StepState): string // headline while it runs
   needs?: string // headline while it waits for the user
   failed?: string // headline when a simulated step fails
   seconds: number // about how long it takes, for the progress estimate and the time left
@@ -47,11 +48,11 @@ export const STEPS: StepDef[] = [
     running: (c) => (c.tagTrack ? `Bouncing the 808s… tag on ${c.tagTrack}` : 'Bouncing the 808s…'),
   },
   { id: 'rar', short: 'Pack stems', icon: Package, real: true, seconds: 15, running: () => 'Wrapping the stems for delivery' },
+  // Filled in first, then it waits for the user's OK ("needs"); once OK'd, the same step publishes.
   {
-    id: 'bs', short: 'BeatStars', icon: Store, real: false, seconds: 34, demoTicks: 16,
-    running: () => 'Filling in BeatStars…',
+    id: 'bs', short: 'BeatStars', icon: Store, real: true, seconds: 150,
+    running: (_ctx, step) => (step.approved ? 'Publishing on BeatStars…' : 'Filling in BeatStars…'),
     needs: 'Your turn: check BeatStars before it goes live',
-    log: (c) => ['Opened BeatStars', `Filled in ${c.name}, BPM and key`, 'Attached the files, free download on', 'Waiting for your OK'],
   },
   {
     id: 'ytv', short: 'YouTube video', icon: Clapperboard, real: false, seconds: 71, demoTicks: 20,
@@ -117,7 +118,14 @@ function reducer(steps: StepState[], action: Action): StepState[] {
       next[action.index] = { ...step, status: 'failed', error: action.error }
       return next
     }
-    next[action.index] = { ...step, status: 'done', progress: 100, seconds: (action.now - (step.startedAt ?? action.now)) / 1000, log: action.log }
+    const seconds = (action.now - (step.startedAt ?? action.now)) / 1000
+    // BeatStars, filled in: it waits for the user's OK before anything goes public.
+    if (STEPS[action.index].id === 'bs' && !step.approved) {
+      next[action.index] = { ...step, status: 'needs', progress: 100, seconds, log: action.log }
+      return next
+    }
+    // Publishing adds its lines to the fill-in's.
+    next[action.index] = { ...step, status: 'done', progress: 100, seconds, log: step.approved ? [...(step.log ?? []), ...action.log] : action.log }
     startAfter(next, action.index, action.now, action.stems)
     return next
   }
@@ -136,27 +144,23 @@ function reducer(steps: StepState[], action: Action): StepState[] {
     const step = { ...steps[i], progress: Math.min(100, steps[i].progress + 100 / ticks), seconds: steps[i].seconds + def.seconds / ticks }
     next[i] = step
     if (step.progress < 100) return next
-    // BeatStars waits for the user's OK before anything goes public.
-    if (def.id === 'bs') next[i] = { ...step, status: 'needs' }
-    else {
-      next[i] = { ...step, status: 'done' }
-      startAfter(next, i, action.now, action.stems)
-    }
-    return next
-  }
-
-  if (action.type === 'approve') {
-    const i = steps.findIndex((s) => s.status === 'needs')
-    if (i < 0) return steps
-    next[i] = { ...steps[i], status: 'done' }
+    next[i] = { ...step, status: 'done' }
     startAfter(next, i, action.now, action.stems)
     return next
   }
 
-  // retry
+  // The user's OK on the BeatStars review: the step runs again in the main process, this time to publish.
+  if (action.type === 'approve') {
+    const i = steps.findIndex((s) => s.status === 'needs')
+    if (i < 0) return steps
+    next[i] = { ...running(action.now), approved: true, log: steps[i].log }
+    return next
+  }
+
+  // retry: the failed step again. BeatStars remembers whether it failed filling in or publishing.
   const i = steps.findIndex((s) => s.status === 'failed')
   if (i < 0) return steps
-  next[i] = running(action.now)
+  next[i] = { ...running(action.now), approved: steps[i].approved, log: steps[i].approved ? steps[i].log : undefined }
   return next
 }
 
@@ -168,6 +172,7 @@ export interface Pipeline {
   approve(): void
   retry(): void
   reset(): void
+  showBeatStars(): Promise<Done> // "Open in browser" on the review
 }
 
 export function usePipeline({ stems, paused }: { stems: boolean; paused: boolean }): Pipeline {
@@ -190,8 +195,10 @@ export function usePipeline({ stems, paused }: { stems: boolean; paused: boolean
   // fails the step.
   const index = steps.findIndex((s) => s.status === 'running')
   const startKey = index >= 0 && STEPS[index].real ? `${index}@${steps[index].startedAt}` : ''
+  // What the main process does for it: the step itself, or "publish" once the user has OK'd BeatStars.
+  const realStep: RealStep | null = startKey ? (steps[index].approved ? 'publish' : (STEPS[index].id as RealStep)) : null
   useEffect(() => {
-    if (!startKey || handedOver.current === startKey || !request.current) return
+    if (!startKey || !realStep || handedOver.current === startKey || !request.current) return
     handedOver.current = startKey
     const runRequest = request.current
     const asOf = generation.current
@@ -202,12 +209,12 @@ export function usePipeline({ stems, paused }: { stems: boolean; paused: boolean
         if (!started.ok) return dispatch({ type: 'fail', index, error: started.error })
         runId.current = started.id
       }
-      const result: StepResult = await window.api.runStep(runId.current, STEPS[index].id as RealStep)
+      const result: StepResult = await window.api.runStep(runId.current, realStep)
       if (asOf !== generation.current) return
-      if (result.ok && STEPS[index].id === 'tidy') runId.current = null // the run is over in the main process
+      if (result.ok && realStep === 'tidy') runId.current = null // the run is over in the main process
       dispatch(result.ok ? { type: 'finish', index, log: result.log, now: Date.now(), stems: runRequest.stems } : { type: 'fail', index, error: result.error })
     })()
-  }, [startKey, index])
+  }, [startKey, index, realStep])
 
   // Drops the current run: the main process stops it (closing FL if it's rendering) and clears its temp files.
   function stop() {
@@ -231,6 +238,7 @@ export function usePipeline({ stems, paused }: { stems: boolean; paused: boolean
       stop()
       dispatch({ type: 'reset', now: Date.now(), stems })
     },
+    showBeatStars: () => (runId.current ? window.api.showBeatStars(runId.current) : Promise.resolve({ ok: false, error: "There's no BeatStars draft yet." })),
   }
 }
 

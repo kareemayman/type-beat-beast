@@ -26,13 +26,14 @@ export default function StepLog({ steps, index, ctx, stems }: { steps: StepState
   } else if (def.real) {
     // A real step: what the main process did, the time so far while it runs, or why it failed.
     lines = (step.log ?? []).map((text) => ({ text, time, dot: '#22C55E', color: 'var(--text)' }))
-    if (status === 'running') lines.push({ text: `${def.running(ctx)} ${mmss(step.seconds)}`, time: 'now', dot: '#FF6500', color: 'var(--t-run)' })
+    if (status === 'running') lines.push({ text: `${def.running(ctx, step)} ${mmss(step.seconds)}`, time: 'now', dot: '#FF6500', color: 'var(--t-run)' })
     if (status === 'failed') lines.push({ text: step.error ?? 'Something went wrong.', time, dot: '#FF4D6D', color: 'var(--t-fail)' })
+    if (status === 'needs' && lines.length) lines[lines.length - 1] = { ...lines[lines.length - 1], dot: '#38BDF8' }
   } else {
     const all = def.log?.(ctx) ?? []
     const shown = status === 'running' ? Math.max(1, Math.ceil((step.progress / 100) * all.length)) : status === 'failed' ? 1 : all.length
     lines = all.slice(0, shown).map((text) => ({ text, time, dot: '#22C55E', color: 'var(--text)' }))
-    if (status === 'running') lines.push({ text: `${def.running(ctx)} ${Math.floor(step.progress)}%`, time: 'now', dot: '#FF6500', color: 'var(--t-run)' })
+    if (status === 'running') lines.push({ text: `${def.running(ctx, step)} ${Math.floor(step.progress)}%`, time: 'now', dot: '#FF6500', color: 'var(--t-run)' })
     if (status === 'failed') lines.push({ text: def.failed ?? 'Something went wrong.', time, dot: '#FF4D6D', color: 'var(--t-fail)' })
     if (status === 'needs') lines[lines.length - 1] = { ...lines[lines.length - 1], dot: '#38BDF8' }
   }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from
 import { ChevronUp, Plus } from 'lucide-react'
 import type { MascotKind } from '../../components/Mascot'
 import { beatFromProject, guessTag, tagTrack, type Beat } from '../../lib/beat'
-import { DEMO, type LogContext, type Pipeline as PipelineState } from '../../lib/pipeline'
+import { type LogContext, type Pipeline as PipelineState } from '../../lib/pipeline'
 import { qualityLabel, useSettings, type Settings } from '../../lib/settings'
 import { useToast } from '../../lib/toasts'
 import BeatCard from './BeatCard'
@@ -115,7 +115,10 @@ export default function NewBeat({ beat, setBeat, pipeline, onRun, onNewBeat, onS
             beat={beat}
             freeDownload={settings.freeDownload}
             onPublish={onPublish}
-            onOpenBrowser={() => toast('info', DEMO ? 'Demo: the browser part comes with the BeatStars step.' : 'BeatStars draft opened in your browser.')}
+            onOpenBrowser={async () => {
+              const shown = await pipeline.showBeatStars()
+              if (!shown.ok) toast('failed', shown.error)
+            }}
             onStop={onStop}
           />
         ) : (

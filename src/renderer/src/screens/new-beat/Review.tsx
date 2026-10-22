@@ -1,8 +1,8 @@
 import { Check, ExternalLink, FileArchive, FileAudio, Rocket, type LucideIcon } from 'lucide-react'
+import { beatStarsTitle } from '../../../../shared/beatstars'
 import Card from '../../components/Card'
 import ConfirmButton from '../../components/ConfirmButton'
 import { longKey, type Beat } from '../../lib/beat'
-import { DEMO } from '../../lib/pipeline'
 import styles from './Review.module.css'
 
 interface ReviewProps {
@@ -13,13 +13,14 @@ interface ReviewProps {
   onStop(): void
 }
 
-// "Your turn": BeatStars is filled in and waits for the user's OK before anything goes public.
+// "Your turn": BeatStars is filled in and waits for the user's OK before anything goes public. "Matched" means the
+// app read the value back from BeatStars' form (src/main/beatstarsUpload.ts). Collaborators aren't filled in yet.
 export default function Review({ beat, freeDownload, onPublish, onOpenBrowser, onStop }: ReviewProps) {
-  const rows: [string, string][] = [
-    ['Title', beat.name],
-    ['BPM', beat.bpm],
-    ['Key', longKey(beat.key)],
-    ...(beat.collabs.length ? beat.collabs.map((name): [string, string] => ['Collab', name]) : [['Collab', 'Solo beat'] as [string, string]]),
+  const rows: { label: string; value: string; byHand?: boolean }[] = [
+    { label: 'Title', value: beatStarsTitle(beat.name) ?? beat.name },
+    { label: 'BPM', value: beat.bpm },
+    { label: 'Key', value: longKey(beat.key) },
+    ...(beat.collabs.length ? beat.collabs.map((name) => ({ label: 'Collab', value: name, byHand: true })) : [{ label: 'Collab', value: 'Solo beat' }]),
   ]
   // The files from the beat folder (see CLAUDE.md, "Beat folder").
   const project = beat.fileName.replace(/\.flp$/i, '') || beat.name
@@ -34,17 +35,23 @@ export default function Review({ beat, freeDownload, onPublish, onOpenBrowser, o
       <div className={styles.details}>
         <div className={styles.title}>Check BeatStars before it goes live</div>
         <div className={styles.subtitle}>
-          {DEMO ? "Demo: BeatStars isn't filled in yet. The files below are real, in the beat folder." : "It's filled in and saved as a draft. Nothing is public yet."}
+          {beat.collabs.length ? "It's saved as a draft, nothing is public yet. Add the collabs in the Chrome window first." : "It's filled in and saved as a draft. Nothing is public yet."}
         </div>
         <div className={styles.rows}>
-          {rows.map(([label, value], i) => (
+          {rows.map(({ label, value, byHand }, i) => (
             <div key={i} className={styles.row}>
               <span className={styles.label}>{label}</span>
               <span className={styles.value}>{value || '—'}</span>
-              <span className={styles.flag}>
-                <Check size={14} strokeWidth={3} />
-                Matched
-              </span>
+              {byHand ? (
+                <span className={styles.flag} data-off="true">
+                  Add by hand
+                </span>
+              ) : (
+                <span className={styles.flag}>
+                  <Check size={14} strokeWidth={3} />
+                  Matched
+                </span>
+              )}
             </div>
           ))}
           <div className={styles.row}>
