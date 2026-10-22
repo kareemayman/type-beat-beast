@@ -12,6 +12,7 @@ describe('cleanSettings', () => {
     const saved = {
       themePref: 'system',
       stems: false,
+      bsShowChrome: false,
       wavBits: '32f',
       publishTime: '20:30',
       tagNames: ['Purchase your tracks today'],
@@ -23,7 +24,7 @@ describe('cleanSettings', () => {
   })
 
   it('drops values of the wrong shape', () => {
-    const saved = { themePref: 'blue', stems: 'yes', mp3Rate: 320, publishTime: '25:00', producerName: '  ', tagNames: 'tag', flPath: 42, outputFolder: null }
+    const saved = { themePref: 'blue', stems: 'yes', bsShowChrome: 1, mp3Rate: 320, publishTime: '25:00', producerName: '  ', tagNames: 'tag', flPath: 42, outputFolder: null }
     expect(cleanSettings(saved)).toEqual(DEFAULT_SETTINGS)
   })
 

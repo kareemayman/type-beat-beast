@@ -9,6 +9,7 @@ export interface Settings {
   stems: boolean
   bsFile: 'mp3' | 'wav'
   freeDownload: boolean
+  bsShowChrome: boolean // show the Chrome window while BeatStars gets filled in; off, it works out of sight
   wavBits: '16' | '24' | '32f'
   mp3Rate: '192' | '256' | '320'
   publishTime: string // "HH:MM", local time
@@ -37,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   stems: true,
   bsFile: 'mp3',
   freeDownload: true,
+  bsShowChrome: true,
   wavBits: '24',
   mp3Rate: '320',
   publishTime: '18:00',
@@ -60,6 +62,7 @@ export function cleanSettings(values: unknown, base: Settings = DEFAULT_SETTINGS
     stems: bool(v.stems, base.stems),
     bsFile: oneOf(v.bsFile, ['mp3', 'wav'], base.bsFile),
     freeDownload: bool(v.freeDownload, base.freeDownload),
+    bsShowChrome: bool(v.bsShowChrome, base.bsShowChrome),
     wavBits: oneOf(v.wavBits, ['16', '24', '32f'], base.wavBits),
     mp3Rate: oneOf(v.mp3Rate, ['192', '256', '320'], base.mp3Rate),
     publishTime: typeof v.publishTime === 'string' && parseTime(v.publishTime) ? v.publishTime : base.publishTime,

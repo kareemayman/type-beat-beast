@@ -264,6 +264,9 @@ export default function Settings() {
                 </button>
               )}
             </div>
+            <Row title="Show Chrome" sub="Watch it fill in BeatStars. Off, it works out of sight until you open it.">
+              <Switch label="Show Chrome" checked={settings.bsShowChrome} onChange={(bsShowChrome) => update({ bsShowChrome })} />
+            </Row>
           </Card>
 
           {/* The names Tag detection trusts first (see CLAUDE.md). Running a beat adds its tag track's name. */}
