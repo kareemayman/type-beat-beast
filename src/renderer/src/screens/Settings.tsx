@@ -30,7 +30,7 @@ type BeatStarsCard = BeatStarsSession | 'checking' | 'loggingIn' | 'loggingOut'
 
 function beatStarsLook(bs: BeatStarsCard): { tone: string; icon: LucideIcon; title: string; sub: string } {
   if (bs === 'checking') return { tone: 'muted', icon: LoaderCircle, title: 'Checking…', sub: "Looking at the app's own Chrome profile." }
-  if (bs === 'loggingIn') return { tone: 'sky', icon: Hand, title: 'Your turn', sub: 'Log in in the Chrome window, then close it.' }
+  if (bs === 'loggingIn') return { tone: 'sky', icon: Hand, title: 'Your turn', sub: 'Log in in the Chrome window. Close it once your dashboard shows.' }
   if (bs === 'loggingOut') return { tone: 'muted', icon: LoaderCircle, title: 'Logging out…', sub: "Clearing the app's Chrome profile." }
   if (!bs.ok) return { tone: 'rose', icon: CircleAlert, title: "Couldn't check", sub: bs.error }
   return bs.loggedIn
@@ -74,7 +74,7 @@ export default function Settings() {
     setBs(session)
     if (!session.ok) toast('failed', session.error)
     else if (session.loggedIn) toast('done', 'BeatStars session saved.')
-    else toast('info', 'Still logged out. Log in in the Chrome window, then close it.')
+    else toast('info', 'Not in yet. Log in, then wait for your BeatStars dashboard (click "Continue to app" if it shows) before closing the window.')
   }
 
   async function logOutOfBeatStars() {

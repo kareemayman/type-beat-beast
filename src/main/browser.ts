@@ -41,8 +41,9 @@ function exclusive<T>(task: () => Promise<T>): Promise<T> {
 
 const NO_CHROME: BeatStarsSession = { ok: false, error: "Couldn't find Google Chrome. Install it to use BeatStars from the app." }
 
-// The login as BeatStars' login site keeps it in its local storage: a refresh token, and an access token with its
-// expiry (30 days from logging in). Logged in means a refresh token, or an access token that hasn't expired.
+// The login as the Studio keeps it in its local storage (the same keys as the sign-in site): a refresh token, and an
+// access token with its expiry (30 days from logging in). Logged in means a refresh token, or an access token that
+// hasn't expired.
 interface StoredLogin {
   access: boolean
   refresh: boolean
@@ -53,9 +54,10 @@ export function isLoggedIn(login: StoredLogin, now = Date.now()): boolean {
   return login.refresh || (login.access && login.expires > now)
 }
 
-// Is the app's profile logged in to BeatStars? A hidden Chrome reads the login site's storage. It loads a static
-// file there (robots.txt), so no BeatStars code runs. (Opening the Studio is no test: the Studio drops its own copy
-// of the login in a fresh browser and sends the visitor to the sign-up page.)
+// Is the app's profile logged in to the Studio, where uploads happen? A hidden Chrome reads the Studio's storage. It
+// loads a static file there (robots.txt), so no BeatStars code runs. The Studio only gets the login when the user
+// reaches it after signing in ("Continue to app", or BeatStars' own jump to the Studio). So the sign-in site's storage
+// is no test: it said "Logged in" while the Studio still sent the app to the sign-up page.
 export function beatStarsSession(): Promise<BeatStarsSession> {
   return exclusive(checkSession)
 }
@@ -68,7 +70,7 @@ async function checkSession(): Promise<BeatStarsSession> {
     const context = await chromium.launchPersistentContext(profileDir(), { executablePath: chrome, headless: true })
     try {
       const page = context.pages()[0] ?? (await context.newPage())
-      await page.goto('https://oauth.beatstars.com/robots.txt', { waitUntil: 'domcontentloaded', timeout: 30_000 })
+      await page.goto('https://studio.beatstars.com/robots.txt', { waitUntil: 'domcontentloaded', timeout: 30_000 })
       // Only whether the tokens are there and when the access token expires leave the page, never a token.
       const login: StoredLogin = await page.evaluate(() => ({
         access: !!localStorage.getItem('access_token'),
@@ -86,7 +88,7 @@ async function checkSession(): Promise<BeatStarsSession> {
 }
 
 // Opens a normal Chrome window on BeatStars' login page, in the app's profile, and waits for the user to close it.
-// Then it checks whether the login took.
+// Then it checks whether the login took, which it has once the user's Studio dashboard showed in that window.
 export function logInToBeatStars(): Promise<BeatStarsSession> {
   return exclusive(async () => {
     const chrome = await findChrome()
